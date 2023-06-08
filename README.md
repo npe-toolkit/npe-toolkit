@@ -1,9 +1,9 @@
 ## 🚧 🚧 Under Construction 🚧 🚧
 
-We're upgrading the Toolkit, including cleaning off the rough edges off of APIs,
-improving the robustness of the implementations, and deprecating legacy code.
+We're upgrading the Toolkit: cleaning off the rough edges off of APIs,
+improving the implementations, and deprecating legacy code.
 
-[Current Status](#current-status) has details.
+[Current Status](#current-status) has more details.
 
 # The NPE Toolkit
 
@@ -33,8 +33,8 @@ upon.
 
 ## Current Status
 
-The Toolkit is undergoing significant renovations and the APIs are going to be
-unstable. If you're interested in using the work-in-progress, we recommend
+The Toolkit is undergoing significant renovations and the is not a stable base to 
+build on currently. If you're interested in using the work-in-progress, you should
 pinning to a specific version or forking into your own repo.
 
 What's changing
@@ -84,7 +84,7 @@ To run your first build, run the following (replacing `your-toolkit-app` with
 the name of your app):
 
 ```
-git clone https://github.com/npe-toolkit/toolkit.git
+git clone https://github.com/npe-toolkit/npe-toolkit.git
 yarn create expo-app your-toolkit-app -t favezilla
 ```
 
