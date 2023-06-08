@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "lib": [
+      "dom",
+      "esnext"
+    ],
+    "jsx": "react",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "typeRoots": [
+      "./ts-declarations",
+      "node_modules/@types"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@toolkit/*": [
+        "*"
+      ],
+      "*": [
+        "../deps/v47/node_modules/*",
+        "../deps/v47/node_modules/@types/*",
+        "../deps/v47/server/node_modules/*",
+        "../deps/v47/server/node_modules/@types/*"
+      ]
+    },
+    "inlineSourceMap": true,
+    "declaration": true,
+    "inlineSources": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": false,
+    "strictFunctionTypes": true,
+    "skipLibCheck": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "strict": true,
+    "outDir": "./dist",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}

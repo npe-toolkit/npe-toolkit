@@ -1,0 +1,255 @@
+/**
+ * Firestore based implmentation of DataStore API. Works on both client and server.
+ *
+ * Note that you need logic in `./Config.tsx` in order to load the correct library implementation -
+ * Firebase API is the same but the implementations are different imports.
+ */
+
+import firebase from 'firebase/app';
+import {provides, use} from '@toolkit/core/providers/Providers';
+import {useAppConfig} from '@toolkit/core/util/AppConfig';
+import {Opt} from '@toolkit/core/util/Types';
+import {
+  BackendProvider,
+  commonCreateLogic,
+  commonUpdateLogic,
+  datastoreBackendAdapter,
+} from '@toolkit/data/Backends';
+import {DataCacheProviderKey} from '@toolkit/data/DataCache';
+import {
+  BaseModel,
+  DataStore,
+  DataStores,
+  DataStoresKey,
+  EntQuery,
+  FieldDelete,
+  GetAllOpts,
+  ModelClass,
+  ModelUtil,
+  QueryOpts,
+  Updater,
+  isModelRefType,
+} from '@toolkit/data/DataStore';
+import {Type as SchemaType} from '@toolkit/data/pads/schema';
+import {getFirestore} from '@toolkit/providers/firebase/Config';
+import {
+  getFirestorePathPrefix,
+  getInstanceFor,
+} from '@toolkit/providers/firebase/Instance';
+import 'firebase/firestore';
+
+let DevUtil: any;
+try {
+  DevUtil = require('@toolkit/core/util/DevUtil');
+} catch (e) {}
+
+type Query<T> = firebase.firestore.Query<T>;
+type CollectionReference<T> = firebase.firestore.CollectionReference<T>;
+type Firestore = firebase.firestore.Firestore;
+const FieldValue = firebase.firestore.FieldValue;
+
+// Not excited we have a "factory"... although I guess the providers we have are similar
+export function firestoreBackendProvider(
+  firestore: Firestore,
+  namespace: Opt<string>,
+): BackendProvider {
+  function getBackend<T extends BaseModel>(model: ModelClass<T>): DataStore<T> {
+    const prefix = getFirestorePathPrefix(namespace);
+    const modelName = ModelUtil.getName(model);
+    const collection = firestore.collection(
+      prefix + modelName,
+    ) as CollectionReference<FirestoreDoc<T>>;
+    // TODO: Move this to a nice wrapper util
+    const schema = ModelUtil.getSchema(model) as unknown as TypedSchema<T>;
+
+    async function get(id: string) {
+      const doc = collection.doc(id);
+      const value = (await doc.get()).data() as FirestoreDoc<T>;
+      if (value == null) {
+        return null;
+      }
+      return toModel(id, value, schema);
+    }
+
+    async function required(id: string) {
+      const value = await get(id);
+      if (!value) {
+        throw Error(`Item ID ${id} not found`);
+      }
+      return value;
+    }
+
+    async function create(v: Updater<T>) {
+      const fields = commonCreateLogic(v, modelName);
+      const doc = collection.doc(fields.id);
+      const firestoreFields = toFirestoreFields<T>(fields, schema);
+      await doc.set(firestoreFields);
+      return await required(fields.id);
+    }
+
+    async function update(v: Updater<T>) {
+      const fields = commonUpdateLogic(v);
+      const doc = collection.doc(fields.id);
+      const firestoreFields = toFirestoreFields<T>(fields, schema);
+      await doc.set(firestoreFields, {merge: true});
+      return await required(fields.id);
+    }
+
+    async function remove(id: string) {
+      const doc = collection.doc(id);
+      await doc.delete();
+    }
+
+    async function query(opts: QueryOpts<T> = {}) {
+      const docList = await firestoreQuery(collection, opts).get();
+      const results = docList.docs.map(doc =>
+        toModel(doc.id, doc.data(), schema),
+      );
+      return results;
+    }
+
+    async function getAll(opts: GetAllOpts<T> = {}) {
+      return query(opts);
+    }
+
+    function listen() {
+      // Not implemented for the backend
+      return () => {};
+    }
+
+    return {
+      get,
+      required,
+      create,
+      update,
+      remove,
+      query,
+      getAll,
+      listen,
+    };
+  }
+
+  return {getBackend};
+}
+
+const FirestoreDelete = FieldValue.delete();
+
+function isFirestoreField(value: any) {
+  return value instanceof FieldValue;
+}
+
+function toModel<T extends BaseModel>(
+  id: string,
+  doc: FirestoreDoc<T>,
+  schema: TypedSchema<T>,
+): T {
+  const out = {id} as T;
+  for (const key in schema) {
+    const value = doc[key];
+    if (key == 'id' || isFirestoreField(value)) {
+      continue;
+    }
+    if (key in doc) {
+      out[key] = value as any;
+    }
+  }
+  return out;
+}
+
+function toFirestoreFields<T extends BaseModel>(
+  fields: Updater<T>,
+  schema: TypedSchema<T>,
+): FirestoreDoc<T> {
+  const out = {} as FirestoreDoc<T>;
+  for (const key in schema) {
+    const value = fields[key as keyof Updater<T>];
+    const schemaType = schema[key];
+
+    if (key == 'id' || !(key in fields)) {
+      continue;
+    } else if (value == FieldDelete) {
+      out[key] = FirestoreDelete;
+    }
+    // @ts-ignore TODO: Make this typesafe
+    else if (isModelRefType(schemaType?.type)) {
+      const id = (value as BaseModel)?.id;
+      if (id !== null) {
+        // @ts-ignore
+        out[key] = id;
+      }
+    } else {
+      // @ts-ignore
+      out[key] = value;
+    }
+  }
+
+  return out;
+}
+
+function firestoreQuery<T extends BaseModel>(
+  collection: Query<FirestoreDoc<T>>,
+  query: EntQuery<T>,
+) {
+  let result = collection;
+  if (query.where) {
+    for (const where of query?.where) {
+      result = result.where(where.field, where.op, where.value);
+    }
+  }
+  if (query.order) {
+    for (const order of query.order) {
+      result = result.orderBy(order.field, order.dir);
+    }
+  }
+  if (query.limit) {
+    if (query.limit.after) {
+      if (!query.order)
+        throw Error('Can not set `limit.after` without `order`');
+      // @ts-ignore
+      let vals = query.order.map(order => query.limit.after[order.field]);
+      result = result.startAfter(...vals);
+    }
+    if (query.limit.size) {
+      result = result.limit(query.limit.size);
+    }
+  }
+  return result;
+}
+
+type FirestoreDoc<T> = {
+  [K in keyof T]:
+    | typeof FirestoreDelete
+    | (T[K] extends ModelClass<any> ? string : T[K]);
+};
+
+export type TypedSchema<T extends BaseModel> = {
+  [P in keyof T]: SchemaType | undefined;
+};
+
+// ***** CONFIGURATION *****
+
+function provideFirestoreDatastore(): DataStores {
+  const appConfig = useAppConfig();
+  // TODO: Use app/firestore from context
+  const firestore = getFirestore();
+  const namespace = getInstanceFor(appConfig);
+
+  const caches = use(DataCacheProviderKey);
+  const stores = {get: getStore};
+  const backends = firestoreBackendProvider(firestore, namespace);
+
+  function getStore<T extends BaseModel>(
+    dataType: ModelClass<T>,
+  ): DataStore<T> {
+    const backendScope = {caches, stores, backends};
+    const store = datastoreBackendAdapter(dataType, backendScope);
+    return store;
+  }
+
+  return stores;
+}
+
+export const FirestoreDatastore = provides(
+  DataStoresKey,
+  provideFirestoreDatastore,
+);

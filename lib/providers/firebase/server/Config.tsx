@@ -1,0 +1,75 @@
+import * as admin from 'firebase-admin';
+import firebase from 'firebase/app';
+import {AppConfig} from '@toolkit/core/util/AppConfig';
+import {FirebaseConfig} from '@toolkit/providers/firebase/Config';
+import {getAccountInfo} from '@toolkit/providers/firebase/server/Auth';
+import {getRequestScope} from '@toolkit/providers/firebase/server/Handler';
+
+// Global variables for now.
+// TODO: Switch to using `Providers`` on the server
+let firebaseConfig: FirebaseConfig;
+let globalAppConfig: AppConfig;
+
+/**
+ * Init Firebase server config
+ */
+export function initFirebaseServer(
+  config: FirebaseConfig,
+  appConfig: AppConfig,
+): admin.app.App {
+  const {projectId} = config;
+  const defaultOptions = {
+    credential: admin.credential.applicationDefault(),
+    authDomain: projectId + '.firebaseapp.com',
+    databaseUrl: 'https://' + projectId + '.firebaseio.com',
+    storageBucket: projectId + '.appspot.com',
+    serviceAccountId: `${projectId}@appspot.gserviceaccount.com`,
+  };
+  firebaseConfig = {...defaultOptions, ...config};
+  globalAppConfig = appConfig;
+  return admin.initializeApp(firebaseConfig);
+}
+/**
+ * Get the full Firebase config
+ */
+export function getFirebaseConfig() {
+  if (!firebaseConfig) {
+    // TODO: typed error
+    throw Error('FirebaseServer is not initialized');
+  }
+  return firebaseConfig;
+}
+
+export function getAppConfig() {
+  return globalAppConfig;
+}
+
+export async function getApp(): Promise<firebase.app.App> {
+  let app = getRequestScope().get('app');
+  if (app) return app;
+
+  const account = getAccountInfo();
+  const appName = account ? account.uid : 'anon';
+
+  // firebase lib may already have this app/appName initialized.
+  app = firebase.apps?.find(app => app.name === appName);
+  if (!app) {
+    app = firebase.initializeApp(getFirebaseConfig(), appName);
+    if (account) {
+      // Sign in with a custom token. Requires a network call and adds delay.
+      const token = await admin.auth().createCustomToken(account.uid);
+      await app.auth().signInWithCustomToken(token);
+    }
+  }
+
+  getRequestScope().set('app', app);
+  return app;
+}
+
+export function getAdminApp(): admin.app.App {
+  if (admin.apps.length === 0) {
+    // TODO: typed error
+    throw Error('FirebaseServer is not initialized');
+  }
+  return admin.apps[0]!;
+}
