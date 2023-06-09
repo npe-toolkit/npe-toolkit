@@ -1,10 +1,10 @@
 // This file is the client API, and references React-specific constructs
 
-import * as React from 'react';
 import {providerKeyFor, use} from '@toolkit/core/providers/Providers';
 import {CodedError} from '@toolkit/core/util/CodedError';
 import {Opt} from '@toolkit/core/util/Types';
 import {BaseModel, ModelClass} from '@toolkit/data/pads/model';
+import * as React from 'react';
 import {DataCallback} from './DataCache';
 
 // Export for convenience
@@ -18,7 +18,7 @@ export {
   Ref,
   type DeletedByTTL,
   type ModelClass,
-  type R,
+  type R
 } from '@toolkit/data/pads/model';
 export * from '@toolkit/data/pads/schema';
 
@@ -50,11 +50,11 @@ export type MutateOpts = {
   optimistic?: boolean;
 };
 
-export type QueryOpts<T> = GetOpts & EntQuery<T>;
+export type QueryOpts<T> = GetOpts & Query<T>;
 
-export type GetAllOpts<T> = GetOpts & Omit<EntQuery<T>, 'where'>;
+export type GetAllOpts<T> = GetOpts & Omit<Query<T>, 'where'>;
 
-export type EntQuery<T> = {
+export type Query<T> = {
   where?: Where[];
   order?: Order[];
   limit?: Limit<T>;

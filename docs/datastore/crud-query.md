@@ -8,7 +8,7 @@ Datastore API provides the following interfaces for reading and writing data.
 export type DataStore<T extends HasId> = {
   get: (id: string, opts?: {edges?: EdgeSelector[]}) => Promise<Opt<T>>;
   getAll: (opts?: {edges?: EdgeSelector[]}) => Promise<T[]>;
-  getMany: (opts?: {query?: EntQuery; edges?: EdgeSelector[]}) => Promise<T[]>;
+  getMany: (opts?: {query?: Query; edges?: EdgeSelector[]}) => Promise<T[]>;
   create: (value: Updater<T>) => Promise<T>;
   update: (value: Updater<T>) => Promise<T>;
   remove: (id: string) => Promise<void>;

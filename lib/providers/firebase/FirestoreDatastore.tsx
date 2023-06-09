@@ -5,7 +5,6 @@
  * Firebase API is the same but the implementations are different imports.
  */
 
-import firebase from 'firebase/app';
 import {provides, use} from '@toolkit/core/providers/Providers';
 import {useAppConfig} from '@toolkit/core/util/AppConfig';
 import {Opt} from '@toolkit/core/util/Types';
@@ -21,11 +20,12 @@ import {
   DataStore,
   DataStores,
   DataStoresKey,
-  EntQuery,
+
   FieldDelete,
   GetAllOpts,
   ModelClass,
   ModelUtil,
+  Query,
   QueryOpts,
   Updater,
   isModelRefType,
@@ -36,6 +36,7 @@ import {
   getFirestorePathPrefix,
   getInstanceFor,
 } from '@toolkit/providers/firebase/Instance';
+import firebase from 'firebase/app';
 import 'firebase/firestore';
 
 let DevUtil: any;
@@ -43,7 +44,7 @@ try {
   DevUtil = require('@toolkit/core/util/DevUtil');
 } catch (e) {}
 
-type Query<T> = firebase.firestore.Query<T>;
+type FirestoreQuery<T> = firebase.firestore.Query<T>;
 type CollectionReference<T> = firebase.firestore.CollectionReference<T>;
 type Firestore = firebase.firestore.Firestore;
 const FieldValue = firebase.firestore.FieldValue;
@@ -187,8 +188,8 @@ function toFirestoreFields<T extends BaseModel>(
 }
 
 function firestoreQuery<T extends BaseModel>(
-  collection: Query<FirestoreDoc<T>>,
-  query: EntQuery<T>,
+  collection: FirestoreQuery<FirestoreDoc<T>>,
+  query: Query<T>,
 ) {
   let result = collection;
   if (query.where) {

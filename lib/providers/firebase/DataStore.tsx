@@ -15,7 +15,6 @@
  *       prevented automatic importing
  */
 
-import firebase from 'firebase/app';
 import {provides, use} from '@toolkit/core/providers/Providers';
 import {useAppConfig} from '@toolkit/core/util/AppConfig';
 import {Opt} from '@toolkit/core/util/Types';
@@ -31,12 +30,12 @@ import {
   DataStores,
   DataStoresKey,
   EdgeSelector,
-  EntQuery,
   GetAllOpts,
   GetOpts,
   ModelClass,
   ModelUtil,
   MutateOpts,
+  Query,
   QueryOpts,
   Updater,
   isArrayType,
@@ -49,6 +48,7 @@ import {
   getFirestorePathPrefix,
   getInstanceFor,
 } from '@toolkit/providers/firebase/Instance';
+import firebase from 'firebase/app';
 import 'firebase/firestore';
 
 let DevUtil: any;
@@ -56,7 +56,7 @@ try {
   DevUtil = require('@toolkit/core/util/DevUtil');
 } catch (e) {}
 
-type Query<T> = firebase.firestore.Query<T>;
+type FirestoreQuery<T> = firebase.firestore.Query<T>;
 type CollectionReference<T> = firebase.firestore.CollectionReference<T>;
 type DocumentData = firebase.firestore.DocumentData;
 type SnapshotOptions = firebase.firestore.SnapshotOptions;
@@ -150,7 +150,7 @@ export function firebaseStore<T extends BaseModel>(
     return await query(opts);
   }
 
-  function applyQuery(collection: Query<T>, query: EntQuery<T>) {
+  function applyQuery(collection: FirestoreQuery<T>, query: Query<T>) {
     let result = collection;
     if (query.where) {
       for (const where of query?.where) {
@@ -413,7 +413,7 @@ export function firebaseStore<T extends BaseModel>(
     await Promise.all(promises);
   }
   async function getFirebaseDocs(
-    query: Query<T>,
+    query: FirestoreQuery<T>,
     edges: EdgeSelector[],
   ): Promise<T[]> {
     const docList = await query.get();
