@@ -10,27 +10,27 @@ type Unlisten = () => void;
 export type DataCallback = (id: string, op: DataOp) => void | Promise<void>;
 
 export type DataCache<T> = {
-  /** Returns the value from the cache if it exists */
-  get(key: string): Opt<T>;
+  /** Gets a cache, or falls through to fn */
+  get(id: string, fn: () => Promise<Opt<T>>): Promise<Opt<T>>;
 
   /** Puts a value into the cache */
-  put(key: string, op: DataOp, value: T): void;
+  put(id: string, op: DataOp, value: T): Promise<void>;
 
   /** Removes a value from the cache */
-  remove(key: string): void;
+  remove: (id: string) => Promise<void>;
 
   /** Returns true if cache has this entry */
-  has(key: string): boolean;
+  has(id: string): Promise<boolean>;
 
-  /** Listen to changes in the by key. "*" listens to all changes in namespace */
-  listen(key: string | string[], callback: DataCallback): Unlisten;
+  /** Listen to changes in the by id. "*" listens to all changes*/
+  listen(ids: string | string[], callback: DataCallback): Unlisten;
 
   /** Invalidate a cache entry without repopulating */
-  invalidate(key: string): void;
-
-  /** Convenience to get a key from cache, or populate if doesn't already exist */
-  getOrPopulate(key: string, op: DataOp, fn: () => Promise<T>): Promise<T>;
+  invalidate(id: string): Promise<void>;
 };
+
+// const for passing into get to only get the cached value.
+export const FromCache = async () => null;
 
 /**
  * Provide a cache for a specific type of data, identified by string namespace.
@@ -46,13 +46,12 @@ export const DataCacheProviderKey = providerKeyFor<DataCacheProvider>(
  */
 export function noCacheProvider(): <T>(ns: string) => DataCache<T> {
   return () => ({
-    get: () => null,
-    put: () => {},
-    remove: () => {},
-    has: () => false,
+    get: (_, fn) => fn(),
+    put: async () => {},
+    remove: async () => {},
+    has: async () => false,
     listen: () => () => {},
-    invalidate: () => {},
-    getOrPopulate: async (_, __, fn) => fn(),
+    invalidate: async () => {},
   });
 }
 
@@ -68,15 +67,23 @@ export function memoryCacheProvider(): <T>(ns: string) => DataCache<T> {
   return <T,>(ns: string): DataCache<T> => {
     const cache = getCache(ns);
 
-    function get(key: string): Opt<T> {
-      const existing = cache[key];
-      return existing != null ? {...existing} : null;
+    async function get(id: string, fn: () => Promise<Opt<T>>): Promise<Opt<T>> {
+      const existing = cache[id];
+      if (existing) {
+        return {...existing};
+      }
+
+      const value = await fn();
+      if (value != null) {
+        await put(id, 'load', value);
+      }
+      return value;
     }
 
-    function put(key: string, op: DataOp, value: T) {
+    async function put(id: string, op: DataOp, value: T) {
       let shouldTrigger;
 
-      const inCache = get(key);
+      const inCache = await get(id, async () => null);
       if (inCache && op == 'update') {
         op = 'update';
         shouldTrigger = !areValuesEqual(inCache, value);
@@ -84,55 +91,40 @@ export function memoryCacheProvider(): <T>(ns: string) => DataCache<T> {
         shouldTrigger = true;
       }
 
-      cache[key] = value;
+      cache[id] = value;
       if (shouldTrigger) {
-        trigger(key, op);
+        trigger(id, op);
       }
     }
 
-    function remove(key: string) {
-      const existing = get(key);
-      delete cache[key];
+    async function remove(id: string) {
+      const existing = cache[id] != null;
+      delete cache[id];
       if (existing) {
-        trigger(key, 'remove');
+        trigger(id, 'remove');
       }
     }
 
-    function has(key: string): boolean {
-      return cache[key] != null;
+    async function has(id: string): Promise<boolean> {
+      return cache[id] != null;
     }
 
-    function invalidate(key: string) {
-      delete cache[key];
+    async function invalidate(id: string) {
+      delete cache[id];
     }
 
-    async function getOrPopulate(
-      key: string,
-      op: DataOp,
-      fn: () => Promise<T>,
-    ): Promise<T> {
-      const existing = get(key);
-      if (existing) {
-        return existing;
+    function listen(ids: string | string[], callback: DataCallback): Unlisten {
+      if (typeof ids == 'string') {
+        ids = [ids];
       }
-
-      const value = await fn();
-      put(key, op, value);
-      return value;
-    }
-
-    function listen(keys: string | string[], callback: DataCallback): Unlisten {
-      if (typeof keys == 'string') {
-        keys = [keys];
-      }
-      for (const key of keys) {
+      for (const key of ids) {
         listeners[ns] = listeners[ns] ?? {};
         listeners[ns][key] = listeners[ns][key] ?? [];
         listeners[ns][key].push(callback);
       }
 
       return () => {
-        for (const key of keys) {
+        for (const key of ids) {
           listeners[ns][key] = listeners[ns][key].filter(cb => cb != callback);
           if (listeners[ns][key].length == 0) {
             delete listeners[ns][key];
@@ -161,7 +153,6 @@ export function memoryCacheProvider(): <T>(ns: string) => DataCache<T> {
       has,
       listen,
       invalidate,
-      getOrPopulate,
     };
   };
 

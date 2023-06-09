@@ -15,6 +15,7 @@
  *       prevented automatic importing
  */
 
+import firebase from 'firebase/app';
 import {provides, use} from '@toolkit/core/providers/Providers';
 import {useAppConfig} from '@toolkit/core/util/AppConfig';
 import {Opt} from '@toolkit/core/util/Types';
@@ -48,7 +49,6 @@ import {
   getFirestorePathPrefix,
   getInstanceFor,
 } from '@toolkit/providers/firebase/Instance';
-import firebase from 'firebase/app';
 import 'firebase/firestore';
 
 let DevUtil: any;
@@ -112,26 +112,17 @@ export function firebaseStore<T extends BaseModel>(
   const {firestore, cacheProvider, dataStores} = ctx;
   const prefix = getFirestorePathPrefix(ctx.instance);
   const modelName = ModelUtil.getName(entityType);
-  const cache = cacheProvider<T>(modelName);
 
   async function get(id: string, opts?: GetOpts) {
     const edges = opts?.edges || [];
     const collection = await getCollection();
     const doc = collection.doc(id);
-    const useCache = opts?.cache !== 'none';
 
     let value: Opt<T>;
-    if (useCache && cache.has(id)) {
-      value = cache.get(id);
-    } else {
-      value = (await doc.get()).data();
-    }
+    value = (await doc.get()).data();
 
     if (value != null) {
       value.id = id;
-      if (useCache) {
-        cache.put(id, 'load', value);
-      }
       await walkEdges([value], edges);
     }
 
@@ -194,14 +185,9 @@ export function firebaseStore<T extends BaseModel>(
     value.createdAt = value.createdAt ?? now;
     value.updatedAt = value.updatedAt ?? now;
 
-    if (opts.optimistic) {
-      // TODO: Full update logic including deleting fields - remove "as T" above
-      cache.put(id, 'add', value);
-    }
     await doc.set(value);
     const newValue = await required(id, {cache: 'none'});
     const op = opts.optimistic ? 'update' : 'add';
-    cache.put(id, op, newValue);
     return newValue;
   }
 
@@ -213,39 +199,22 @@ export function firebaseStore<T extends BaseModel>(
     }
     const now = Date.now();
     value.updatedAt = value.updatedAt ?? now;
-
-    if (opts.optimistic && cache.has(value.id)) {
-      const cached = cache.get(value.id);
-      if (cached) {
-        const merged = {...cached, ...value};
-        cache.put(value.id, 'update', merged);
-      }
-    }
     const doc = await getDocumentRef(value.id);
 
     // TODO: Recovery if optimistic update fails
     await doc.set(value as Partial<T>, {merge: true});
     const newValue = await required(value.id, {cache: 'none'});
-    cache.put(value.id, 'update', newValue);
     return newValue;
   }
 
   async function remove(id: string, opts: MutateOpts = {}) {
     const doc = await getDocumentRef(id);
 
-    if (opts.optimistic) {
-      cache.remove(id); // TODO: Handle optimistic failures
-    }
-
     await doc.delete();
-
-    if (!opts.optimistic) {
-      cache.remove(id);
-    }
   }
 
   function listen(id: string, fn: DataCallback) {
-    return cache.listen(id, fn);
+    return () => {};
   }
 
   async function getCollection(): Promise<CollectionReference<T>> {
@@ -419,7 +388,6 @@ export function firebaseStore<T extends BaseModel>(
     const docList = await query.get();
 
     const results = docList.docs.map(docSnapshotToModel);
-    results.forEach(v => cache.put(v.id, 'load', v));
     await walkEdges(results, edges);
 
     return results;

@@ -1,6 +1,10 @@
 import {Opt} from '@toolkit/core/util/Types';
 import {uuidv4} from '@toolkit/core/util/Util';
-import {DataCacheProvider, DataCallback} from '@toolkit/data/DataCache';
+import {
+  DataCacheProvider,
+  DataCallback,
+  FromCache,
+} from '@toolkit/data/DataCache';
 import {
   BaseModel,
   DataStore,
@@ -11,7 +15,6 @@ import {
   ModelClass,
   ModelUtil,
   MutateOpts,
-  Query,
   QueryOpts,
   Updater,
   isArrayType,
@@ -39,12 +42,7 @@ export function datastoreBackendAdapter<T extends BaseModel>(
     const edges = opts?.edges || [];
     const useCache = opts?.cache !== 'none';
 
-    let value: Opt<T>;
-    if (useCache && cache.has(id)) {
-      value = cache.get(id);
-    } else {
-      value = await db.get(id);
-    }
+    const value = await cache.get(id, () => db.get(id));
 
     if (value != null) {
       if (useCache) {
@@ -95,9 +93,9 @@ export function datastoreBackendAdapter<T extends BaseModel>(
     const value = commonUpdateLogic(v);
     const id = value.id;
 
-    if (opts.optimistic && cache.has(id)) {
+    if (opts.optimistic && (await cache.has(id))) {
       // TODO: Full update logic including deleting fields
-      const cached = cache.get(id);
+      const cached = await cache.get(id, FromCache);
       if (cached) {
         const merged = {...cached, ...value};
         cache.put(id, 'update', merged);
