@@ -1,4 +1,3 @@
-import {Platform} from 'react-native';
 import firebase from 'firebase/app';
 
 type Firestore = firebase.firestore.Firestore;
@@ -92,7 +91,7 @@ export function initializeOnce(firestore: Firestore) {
         emulatorConfig?.host ?? EMULATOR_FIRESTORE_HOST,
         emulatorConfig?.port ?? EMULATOR_FIRESTORE_PORT,
       );
-    } else if (Platform.OS === 'android') {
+    } else if (useFirestoreLongPolling) {
       firestore.settings({experimentalForceLongPolling: true, merge: true});
     }
   }
@@ -103,4 +102,10 @@ export function initializeOnce(firestore: Firestore) {
 // TODO: Use app from context (TBD: server context)
 export function useFirebaseApp(): firebase.app.App {
   return getFirebaseApp();
+}
+
+let useFirestoreLongPolling = false;
+
+export function setUseFirestoreLongPolling(value: boolean) {
+  useFirestoreLongPolling = value;
 }
