@@ -1,16 +1,13 @@
-import {
-  providerKeyFor,
-  providesValue,
-  use,
-} from '@toolkit/core/providers/Providers';
+import {providerKeyFor, providesValue} from '@toolkit/core/providers/Providers';
 import {Opt} from '@toolkit/core/util/Types';
+import {Query} from './DataStore';
 
 export type DataOp = 'add' | 'update' | 'remove' | 'load';
 type Unlisten = () => void;
 export type DataCallback = (id: string, op: DataOp) => void | Promise<void>;
 
 export type DataCache<T> = {
-  /** Gets a cache, or falls through to fn */
+  /** Gets from cache, or falls through to fn */
   get(id: string, fn: () => Promise<Opt<T>>): Promise<Opt<T>>;
 
   /** Puts a value into the cache */
@@ -33,42 +30,39 @@ export type DataCache<T> = {
 export const FromCache = async () => null;
 
 /**
- * Provide a cache for a specific type of data, identified by string namespace.
- */
-export type DataCacheProvider = <T>(ns: string) => DataCache<T>;
-
-export const DataCacheProviderKey = providerKeyFor<DataCacheProvider>(
-  noCacheProvider(),
-);
-
-/**
  * No-op cache provider (doesn't cache)
  */
-export function noCacheProvider(): <T>(ns: string) => DataCache<T> {
-  return () => ({
+export function noCache<T>(): DataCache<T> {
+  return {
     get: (_, fn) => fn(),
     put: async () => {},
     remove: async () => {},
     has: async () => false,
     listen: () => () => {},
     invalidate: async () => {},
-  });
+  };
 }
 
+type MemoryCacheData<T> = {
+  cache: Record<string, T>;
+  listeners: Record<string, DataCallback[]>;
+};
+
 /**
- * Simple in-memory data cache. Doesn't limit storage, which
+ * Simple in-memory data cache.
+ *
+ * Doesn't limit storage, which
  * will lead to RAM issues if used with datastores returning results
  * that are large or have 10s of thousands of entries.
  */
-export function memoryCacheProvider(): <T>(ns: string) => DataCache<T> {
-  const caches: Record<string, Record<string, any>> = {};
-  const listeners: Record<string, Record<string, DataCallback[]>> = {};
+export function inMemoryDataCaches() {
+  const caches: Record<string, MemoryCacheData<any>> = {};
 
-  return <T,>(ns: string): DataCache<T> => {
-    const cache = getCache(ns);
+  function cacheForNamespace<T>(ns: string): DataCache<T> {
+    const {cache, listeners} = getCache(ns);
 
     async function get(id: string, fn: () => Promise<Opt<T>>): Promise<Opt<T>> {
-      const existing = cache[id];
+      const existing = cache[id] as Opt<T>;
       if (existing) {
         return {...existing};
       }
@@ -118,27 +112,23 @@ export function memoryCacheProvider(): <T>(ns: string) => DataCache<T> {
         ids = [ids];
       }
       for (const key of ids) {
-        listeners[ns] = listeners[ns] ?? {};
-        listeners[ns][key] = listeners[ns][key] ?? [];
-        listeners[ns][key].push(callback);
+        listeners[key] = listeners[key] ?? [];
+        listeners[key].push(callback);
       }
 
       return () => {
         for (const key of ids) {
-          listeners[ns][key] = listeners[ns][key].filter(cb => cb != callback);
-          if (listeners[ns][key].length == 0) {
-            delete listeners[ns][key];
+          listeners[key] = listeners[key].filter(cb => cb != callback);
+          if (listeners[key].length == 0) {
+            delete listeners[key];
           }
         }
       };
     }
 
     function trigger(key: string, op: DataOp) {
-      if (!listeners[ns]) {
-        return;
-      }
-      const matches = listeners[ns][key] ?? [];
-      const wildcardMatches = listeners[ns]['*'] ?? [];
+      const matches = listeners[key] ?? [];
+      const wildcardMatches = listeners['*'] ?? [];
 
       const callbacks = [...matches, ...wildcardMatches];
       for (const callback of callbacks) {
@@ -154,12 +144,14 @@ export function memoryCacheProvider(): <T>(ns: string) => DataCache<T> {
       listen,
       invalidate,
     };
-  };
+  }
 
-  function getCache(ns: string): Record<string, any> {
+  return {cacheForNamespace};
+
+  function getCache<T>(ns: string): MemoryCacheData<T> {
     let cache = caches[ns];
     if (!cache) {
-      caches[ns] = {};
+      caches[ns] = {cache: {}, listeners: {}};
       cache = caches[ns];
     }
     return cache;
@@ -192,8 +184,3 @@ function areValuesEqual(lhs: any, rhs: any): boolean {
 
   return true;
 }
-
-export const InMemoryDataCache = providesValue(
-  DataCacheProviderKey,
-  memoryCacheProvider(),
-);

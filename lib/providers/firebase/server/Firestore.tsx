@@ -1,4 +1,3 @@
-import {noCacheProvider} from '@toolkit/data/DataCache';
 import {BaseModel, DataStore, ModelClass} from '@toolkit/data/DataStore';
 import {initializeOnce} from '@toolkit/providers/firebase/Config';
 import {
@@ -42,7 +41,6 @@ export async function getDataStore<T extends BaseModel>(
   const ctx = {
     firestore: initializeOnce(app.firestore()),
     instance: getInstanceFor(appConfig),
-    cacheProvider: noCacheProvider(),
   };
 
   function getFirebaseStore<T extends BaseModel>(
@@ -65,7 +63,6 @@ export function getAdminDataStore<T extends BaseModel>(
     /* @ts-ignore Client and server have same API but are different types */
     firestore: initializeOnce(app.firestore()),
     instance: getInstanceFor(appConfig),
-    cacheProvider: noCacheProvider(),
     dataStores: {get: getAdminDataStore},
     ...ctx,
   };

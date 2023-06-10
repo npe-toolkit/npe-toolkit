@@ -1,14 +1,10 @@
 import {Opt} from '@toolkit/core/util/Types';
 import {uuidv4} from '@toolkit/core/util/Util';
-import {
-  DataCacheProvider,
-  DataCallback,
-  FromCache,
-} from '@toolkit/data/DataCache';
+import {DataCache, DataCallback, FromCache} from '@toolkit/data/DataCache';
 import {
   BaseModel,
   DataStore,
-  DataStores,
+  DataStoreFactory,
   EdgeSelector,
   GetAllOpts,
   GetOpts,
@@ -23,20 +19,18 @@ import {
 } from '@toolkit/data/DataStore';
 
 /**
- * Adapt a backend to a DataStore, with implementation for::
+ * Add key features to a storage layer-only implementation of a DataStore:
  * - Caching and optimistic updates
  * - Listening for client-side data changes
  * - Edge-walking in queries
  */
-export function datastoreBackendAdapter<T extends BaseModel>(
+export function fullDataStore<T extends BaseModel>(
   entityType: ModelClass<T>,
-  scope: BackendScope,
+  db: DataStore<T>,
+  cache: DataCache<T>,
+  factory: DataStoreFactory,
 ): DataStore<T> {
-  const {caches, stores, backends} = scope;
   const modelName = ModelUtil.getName(entityType);
-  const cache = caches<T>(modelName);
-
-  const db = backends.getBackend(entityType);
 
   async function get(id: string, opts?: GetOpts) {
     const edges = opts?.edges || [];
@@ -50,7 +44,6 @@ export function datastoreBackendAdapter<T extends BaseModel>(
       }
       await walkEdges([value], edges);
     }
-
     return value;
   }
 
@@ -129,7 +122,7 @@ export function datastoreBackendAdapter<T extends BaseModel>(
     thisEdge: ModelClass<any>,
     edges: EdgeSelector[],
   ): Promise<void> {
-    const edgeStore = stores.get(thisEdge);
+    const edgeStore = factory.get(thisEdge);
 
     // Load edge by the ID(s)
     const values = await Promise.all(
@@ -161,7 +154,7 @@ export function datastoreBackendAdapter<T extends BaseModel>(
     isKeyFieldArray: boolean,
   ): Promise<T[]> {
     const edgeSchema = ModelUtil.getSchema(thisEdge);
-    const edgeStore = stores.get(thisEdge);
+    const edgeStore = factory.get(thisEdge);
 
     let fieldToMatch: string = '';
     for (const [key, val] of Object.entries(edgeSchema)) {
@@ -276,29 +269,6 @@ export function datastoreBackendAdapter<T extends BaseModel>(
     listen,
   };
 }
-
-// Backend scope is needed to store values from the current scope
-// for use across recursive backend calls, where hooks can't be run.
-export type BackendScope = {
-  /**
-   * Factory for creating DataStores for different entity types.
-   */
-  stores: DataStores;
-
-  /**
-   * Cache for looking up data. Pass in the `nullCache()` if no caching is desired.
-   */
-  caches: DataCacheProvider;
-
-  /**
-   * Factory for creating backend implemenattions
-   */
-  backends: BackendProvider;
-};
-
-export type BackendProvider = {
-  getBackend: <T extends BaseModel>(model: ModelClass<T>) => DataStore<T>;
-};
 
 export type UpdaterWithId<T extends BaseModel> = {id: string} & Updater<T>;
 

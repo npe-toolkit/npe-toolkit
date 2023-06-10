@@ -20,16 +20,12 @@ import {provides, use} from '@toolkit/core/providers/Providers';
 import {useAppConfig} from '@toolkit/core/util/AppConfig';
 import {Opt} from '@toolkit/core/util/Types';
 import {uuidv4} from '@toolkit/core/util/Util';
-import {
-  DataCacheProvider,
-  DataCacheProviderKey,
-  DataCallback,
-} from '@toolkit/data/DataCache';
+import {DataCallback} from '@toolkit/data/DataCache';
 import {
   BaseModel,
   DataStore,
-  DataStores,
-  DataStoresKey,
+  DataStoreFactory,
+  DataStoreFactoryKey,
   EdgeSelector,
   GetAllOpts,
   GetOpts,
@@ -72,12 +68,10 @@ function useFirestore() {
 function useFirestoreContext() {
   const appConfig = useAppConfig();
   const firestore = useFirestore();
-  const cacheProvider = use(DataCacheProviderKey);
 
   return {
     firestore,
     instance: getInstanceFor(appConfig),
-    cacheProvider,
   };
 }
 
@@ -85,7 +79,7 @@ export type FirestoreContext = {
   /**
    * Factory for creating DataStores for different entity types.
    */
-  dataStores: DataStores;
+  dataStores: DataStoreFactory;
 
   /**
    * Firestore isntance to use.
@@ -98,18 +92,13 @@ export type FirestoreContext = {
    * (prod, staging, etc). This is used as a top level folder in Firestore for all content.
    */
   instance: Opt<string>;
-
-  /**
-   * Cache for looking up data. Pass in the `nullCache()` if no caching is desired.
-   */
-  cacheProvider: DataCacheProvider;
 };
 
 export function firebaseStore<T extends BaseModel>(
   entityType: ModelClass<T>,
   ctx: FirestoreContext,
 ): DataStore<T> {
-  const {firestore, cacheProvider, dataStores} = ctx;
+  const {firestore, dataStores} = ctx;
   const prefix = getFirestorePathPrefix(ctx.instance);
   const modelName = ModelUtil.getName(entityType);
 
@@ -405,7 +394,7 @@ export function firebaseStore<T extends BaseModel>(
   };
 }
 
-function provideDataStores(): DataStores {
+function provideDataStores(): DataStoreFactory {
   const ctx = useFirestoreContext();
 
   const dataStores = {get: getStore};
@@ -420,7 +409,10 @@ function provideDataStores(): DataStores {
   return dataStores;
 }
 
-export const FirestoreDatastore = provides(DataStoresKey, provideDataStores);
+export const FirestoreDatastore = provides(
+  DataStoreFactoryKey,
+  provideDataStores,
+);
 
 export function storageToFirebase<T extends BaseModel>(
   data: StorageData<T>,

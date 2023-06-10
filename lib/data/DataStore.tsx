@@ -96,19 +96,31 @@ export type Updater<T> = Partial<
   } & HasId
 >;
 
-export type DataStores = {
+/**
+ * DataStoreFactory gives you and instance of a `DataStore` for a given model.
+ *
+ * Don't like having we have a "factory" concept from Providers, but there
+ * are clearly distinct needs.
+ *
+ * Providers:
+ * - Can call hooks
+ * - Have no-arg functions for getting an instance
+ *
+ * But when getting an instance of a DataStore, we needed to call hooks
+ * and take in a model type as an argument.
+ */
+export type DataStoreFactory = {
   get: <T extends BaseModel>(dataType: ModelClass<T>) => DataStore<T>;
 };
 
-export const DataStoresKey = providerKeyFor<DataStores>();
+export const DataStoreFactoryKey = providerKeyFor<DataStoreFactory>();
 
 /**
- * Get `DataStores` that can get a `DataStore` for multiple models.
  *
  * Most uses cases will want to use `useDataStore()` to avoid an extra lookup.
  */
-export function useDataStores(): DataStores {
-  return use(DataStoresKey);
+export function useDataStoreFactory(): DataStoreFactory {
+  return use(DataStoreFactoryKey);
 }
 
 /**
@@ -117,7 +129,7 @@ export function useDataStores(): DataStores {
 export function useDataStore<T extends BaseModel>(
   dataType: ModelClass<T>,
 ): DataStore<T> {
-  const dataStores = useDataStores();
+  const dataStores = useDataStoreFactory();
   return dataStores.get(dataType);
 }
 

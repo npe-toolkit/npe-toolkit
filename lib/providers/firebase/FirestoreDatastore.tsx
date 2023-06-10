@@ -5,22 +5,16 @@
  * Firebase API is the same but the implementations are different imports.
  */
 
-import {provides, use} from '@toolkit/core/providers/Providers';
+import firebase from 'firebase/app';
+import {provides, providesValue, use} from '@toolkit/core/providers/Providers';
 import {useAppConfig} from '@toolkit/core/util/AppConfig';
 import {Opt} from '@toolkit/core/util/Types';
-import {
-  BackendProvider,
-  commonCreateLogic,
-  commonUpdateLogic,
-  datastoreBackendAdapter,
-} from '@toolkit/data/Backends';
-import {DataCacheProviderKey} from '@toolkit/data/DataCache';
+import {inMemoryDataCaches, noCache} from '@toolkit/data/DataCache';
 import {
   BaseModel,
   DataStore,
-  DataStores,
-  DataStoresKey,
-
+  DataStoreFactory,
+  DataStoreFactoryKey,
   FieldDelete,
   GetAllOpts,
   ModelClass,
@@ -30,13 +24,17 @@ import {
   Updater,
   isModelRefType,
 } from '@toolkit/data/DataStore';
+import {
+  commonCreateLogic,
+  commonUpdateLogic,
+  fullDataStore,
+} from '@toolkit/data/DataStoreImpl';
 import {Type as SchemaType} from '@toolkit/data/pads/schema';
 import {getFirestore} from '@toolkit/providers/firebase/Config';
 import {
   getFirestorePathPrefix,
   getInstanceFor,
 } from '@toolkit/providers/firebase/Instance';
-import firebase from 'firebase/app';
 import 'firebase/firestore';
 
 let DevUtil: any;
@@ -50,87 +48,84 @@ type Firestore = firebase.firestore.Firestore;
 const FieldValue = firebase.firestore.FieldValue;
 
 // Not excited we have a "factory"... although I guess the providers we have are similar
-export function firestoreBackendProvider(
+export function firestoreBackend<T extends BaseModel>(
+  dataType: ModelClass<T>,
   firestore: Firestore,
   namespace: Opt<string>,
-): BackendProvider {
-  function getBackend<T extends BaseModel>(model: ModelClass<T>): DataStore<T> {
-    const prefix = getFirestorePathPrefix(namespace);
-    const modelName = ModelUtil.getName(model);
-    const collection = firestore.collection(
-      prefix + modelName,
-    ) as CollectionReference<FirestoreDoc<T>>;
-    // TODO: Move this to a nice wrapper util
-    const schema = ModelUtil.getSchema(model) as unknown as TypedSchema<T>;
+): DataStore<T> {
+  const prefix = getFirestorePathPrefix(namespace);
+  const modelName = ModelUtil.getName(dataType);
+  const collection = firestore.collection(
+    prefix + modelName,
+  ) as CollectionReference<FirestoreDoc<T>>;
+  // TODO: Move this to a nice wrapper util
+  const schema = ModelUtil.getSchema(dataType) as unknown as TypedSchema<T>;
 
-    async function get(id: string) {
-      const doc = collection.doc(id);
-      const value = (await doc.get()).data() as FirestoreDoc<T>;
-      if (value == null) {
-        return null;
-      }
-      return toModel(id, value, schema);
+  async function get(id: string) {
+    const doc = collection.doc(id);
+    const value = (await doc.get()).data() as FirestoreDoc<T>;
+    if (value == null) {
+      return null;
     }
-
-    async function required(id: string) {
-      const value = await get(id);
-      if (!value) {
-        throw Error(`Item ID ${id} not found`);
-      }
-      return value;
-    }
-
-    async function create(v: Updater<T>) {
-      const fields = commonCreateLogic(v, modelName);
-      const doc = collection.doc(fields.id);
-      const firestoreFields = toFirestoreFields<T>(fields, schema);
-      await doc.set(firestoreFields);
-      return await required(fields.id);
-    }
-
-    async function update(v: Updater<T>) {
-      const fields = commonUpdateLogic(v);
-      const doc = collection.doc(fields.id);
-      const firestoreFields = toFirestoreFields<T>(fields, schema);
-      await doc.set(firestoreFields, {merge: true});
-      return await required(fields.id);
-    }
-
-    async function remove(id: string) {
-      const doc = collection.doc(id);
-      await doc.delete();
-    }
-
-    async function query(opts: QueryOpts<T> = {}) {
-      const docList = await firestoreQuery(collection, opts).get();
-      const results = docList.docs.map(doc =>
-        toModel(doc.id, doc.data(), schema),
-      );
-      return results;
-    }
-
-    async function getAll(opts: GetAllOpts<T> = {}) {
-      return query(opts);
-    }
-
-    function listen() {
-      // Not implemented for the backend
-      return () => {};
-    }
-
-    return {
-      get,
-      required,
-      create,
-      update,
-      remove,
-      query,
-      getAll,
-      listen,
-    };
+    return toModel(id, value, schema);
   }
 
-  return {getBackend};
+  async function required(id: string) {
+    const value = await get(id);
+    if (!value) {
+      throw Error(`Item ID ${id} not found`);
+    }
+    return value;
+  }
+
+  async function create(v: Updater<T>) {
+    const fields = commonCreateLogic(v, modelName);
+    const doc = collection.doc(fields.id);
+    const firestoreFields = toFirestoreFields<T>(fields, schema);
+    await doc.set(firestoreFields);
+    return await required(fields.id);
+  }
+
+  async function update(v: Updater<T>) {
+    const fields = commonUpdateLogic(v);
+    const doc = collection.doc(fields.id);
+    const firestoreFields = toFirestoreFields<T>(fields, schema);
+    await doc.set(firestoreFields, {merge: true});
+    return await required(fields.id);
+  }
+
+  async function remove(id: string) {
+    const doc = collection.doc(id);
+    await doc.delete();
+  }
+
+  async function query(opts: QueryOpts<T> = {}) {
+    const docList = await firestoreQuery(collection, opts).get();
+    const results = docList.docs.map(doc =>
+      toModel(doc.id, doc.data(), schema),
+    );
+    return results;
+  }
+
+  async function getAll(opts: GetAllOpts<T> = {}) {
+    return query(opts);
+  }
+
+  function listen() {
+    // Not implemented for the backend
+    return () => {};
+  }
+
+  return {
+    get,
+    required,
+    create,
+    update,
+    remove,
+    query,
+    getAll,
+    listen,
+  };
 }
 
 const FirestoreDelete = FieldValue.delete();
@@ -227,30 +222,43 @@ export type TypedSchema<T extends BaseModel> = {
   [P in keyof T]: SchemaType | undefined;
 };
 
-// ***** CONFIGURATION *****
+function firestoreDatastore(useCache: boolean): () => DataStoreFactory {
+  // Three scopes were needed - sorry it makes it a little hard to reason about
 
-function provideFirestoreDatastore(): DataStores {
-  const appConfig = useAppConfig();
-  // TODO: Use app/firestore from context
-  const firestore = getFirestore();
-  const namespace = getInstanceFor(appConfig);
+  // 1. Top-level scope is created at app init time, to store global cache state
+  const caches = useCache ? inMemoryDataCaches() : null;
 
-  const caches = use(DataCacheProviderKey);
-  const stores = {get: getStore};
-  const backends = firestoreBackendProvider(firestore, namespace);
+  // 2. Provider scope is created when injecting, so it can use providers with hooks
+  //    to get the db configuration.
+  function useDataStoreFactory() {
+    // TODO: Use app/firestore from context
+    const firestore = getFirestore();
+    const appConfig = useAppConfig();
+    const namespace = getInstanceFor(appConfig);
+    const factory = {get};
 
-  function getStore<T extends BaseModel>(
-    dataType: ModelClass<T>,
-  ): DataStore<T> {
-    const backendScope = {caches, stores, backends};
-    const store = datastoreBackendAdapter(dataType, backendScope);
-    return store;
+    // 3. Specific instances of datastores are created within the factory,
+    //    without using providers, so they can be called for recursive edge walking
+    function get<T extends BaseModel>(dataType: ModelClass<T>): DataStore<T> {
+      const modelName = ModelUtil.getName(dataType);
+      const db = firestoreBackend(dataType, firestore, namespace);
+      const cache = caches
+        ? caches.cacheForNamespace<T>(`${namespace}/${modelName}`)
+        : noCache<T>();
+      return fullDataStore(dataType, db, cache, factory);
+    }
+    return factory;
   }
 
-  return stores;
+  return useDataStoreFactory;
 }
 
+export const FirestoreDatastoreWithCaching = provides(
+  DataStoreFactoryKey,
+  firestoreDatastore(true),
+);
+
 export const FirestoreDatastore = provides(
-  DataStoresKey,
-  provideFirestoreDatastore,
+  DataStoreFactoryKey,
+  firestoreDatastore(false),
 );
