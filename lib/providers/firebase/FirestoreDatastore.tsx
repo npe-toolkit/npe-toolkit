@@ -9,7 +9,7 @@ import firebase from 'firebase/app';
 import {provides, providesValue, use} from '@toolkit/core/providers/Providers';
 import {useAppConfig} from '@toolkit/core/util/AppConfig';
 import {Opt} from '@toolkit/core/util/Types';
-import {inMemoryDataCaches, noCache} from '@toolkit/data/DataCache';
+import {getInMemoryCache, noCache} from '@toolkit/data/DataCache';
 import {
   BaseModel,
   DataStore,
@@ -225,9 +225,6 @@ export type TypedSchema<T extends BaseModel> = {
 function firestoreDatastore(useCache: boolean): () => DataStoreFactory {
   // Three scopes were needed - sorry it makes it a little hard to reason about
 
-  // 1. Top-level scope is created at app init time, to store global cache state
-  const caches = useCache ? inMemoryDataCaches() : null;
-
   // 2. Provider scope is created when injecting, so it can use providers with hooks
   //    to get the db configuration.
   function useDataStoreFactory() {
@@ -242,9 +239,9 @@ function firestoreDatastore(useCache: boolean): () => DataStoreFactory {
     function get<T extends BaseModel>(dataType: ModelClass<T>): DataStore<T> {
       const modelName = ModelUtil.getName(dataType);
       const db = firestoreBackend(dataType, firestore, namespace);
-      const cache = caches
-        ? caches.cacheForNamespace<T>(`${namespace}/${modelName}`)
-        : noCache<T>();
+      const cacheNs = `${namespace}/${modelName}`;
+      const cache = useCache ? getInMemoryCache<T>(cacheNs) : noCache<T>();
+
       return fullDataStore(dataType, db, cache, factory);
     }
     return factory;

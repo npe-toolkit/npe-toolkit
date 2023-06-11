@@ -48,114 +48,110 @@ type MemoryCacheData<T> = {
   listeners: Record<string, DataCallback[]>;
 };
 
+const inMemoryCaches: Record<string, DataCache<any>> = {};
+
 /**
- * Simple in-memory data cache.
- *
- * Doesn't limit storage, which
- * will lead to RAM issues if used with datastores returning results
- * that are large or have 10s of thousands of entries.
+ * Get the in-memory cache for a given namepace
  */
-export function inMemoryDataCaches() {
-  const caches: Record<string, MemoryCacheData<any>> = {};
+export function getInMemoryCache<T>(namespace: string): DataCache<T> {
+  let cache = inMemoryCaches[namespace];
+  if (!cache) {
+    inMemoryCaches[namespace] = inMemoryCache<T>();
+    cache = inMemoryCaches[namespace];
+  }
+  return cache;
+}
 
-  function cacheForNamespace<T>(ns: string): DataCache<T> {
-    const {cache, listeners} = getCache(ns);
+/**
+ * Create an in-memory cache.
+ */
+function inMemoryCache<T>(): DataCache<T> {
+  const cache: Record<string, T> = {};
+  const listeners: Record<string, DataCallback[]> = {};
 
-    async function get(id: string, fn: () => Promise<Opt<T>>): Promise<Opt<T>> {
-      const existing = cache[id] as Opt<T>;
-      if (existing) {
-        return {...existing};
-      }
-
-      const value = await fn();
-      if (value != null) {
-        await put(id, 'load', value);
-      }
-      return value;
+  async function get(id: string, fn: () => Promise<Opt<T>>): Promise<Opt<T>> {
+    const existing = cache[id] as Opt<T>;
+    if (existing) {
+      return {...existing};
     }
 
-    async function put(id: string, op: DataOp, value: T) {
-      let shouldTrigger;
+    const value = await fn();
+    if (value != null) {
+      await put(id, 'load', value);
+    }
+    return value;
+  }
 
-      const inCache = await get(id, async () => null);
-      if (inCache && op == 'update') {
-        op = 'update';
-        shouldTrigger = !areValuesEqual(inCache, value);
-      } else if (op == 'add') {
-        shouldTrigger = true;
-      }
+  async function put(id: string, op: DataOp, value: T) {
+    let shouldTrigger;
 
-      cache[id] = value;
-      if (shouldTrigger) {
-        trigger(id, op);
-      }
+    const inCache = await get(id, async () => null);
+    if (inCache && op == 'update') {
+      op = 'update';
+      shouldTrigger = !areValuesEqual(inCache, value);
+    } else if (op == 'add') {
+      shouldTrigger = true;
     }
 
-    async function remove(id: string) {
-      const existing = cache[id] != null;
-      delete cache[id];
-      if (existing) {
-        trigger(id, 'remove');
-      }
+    cache[id] = value;
+    if (shouldTrigger) {
+      trigger(id, op);
+    }
+  }
+
+  async function remove(id: string) {
+    const existing = cache[id] != null;
+    delete cache[id];
+    if (existing) {
+      trigger(id, 'remove');
+    }
+  }
+
+  async function has(id: string): Promise<boolean> {
+    return cache[id] != null;
+  }
+
+  async function invalidate(id: string) {
+    delete cache[id];
+  }
+
+  function listen(ids: string | string[], callback: DataCallback): Unlisten {
+    if (typeof ids == 'string') {
+      ids = [ids];
+    }
+    for (const key of ids) {
+      listeners[key] = listeners[key] ?? [];
+      listeners[key].push(callback);
     }
 
-    async function has(id: string): Promise<boolean> {
-      return cache[id] != null;
-    }
-
-    async function invalidate(id: string) {
-      delete cache[id];
-    }
-
-    function listen(ids: string | string[], callback: DataCallback): Unlisten {
-      if (typeof ids == 'string') {
-        ids = [ids];
-      }
+    return () => {
       for (const key of ids) {
-        listeners[key] = listeners[key] ?? [];
-        listeners[key].push(callback);
-      }
-
-      return () => {
-        for (const key of ids) {
-          listeners[key] = listeners[key].filter(cb => cb != callback);
-          if (listeners[key].length == 0) {
-            delete listeners[key];
-          }
+        listeners[key] = listeners[key].filter(cb => cb != callback);
+        if (listeners[key].length == 0) {
+          delete listeners[key];
         }
-      };
-    }
-
-    function trigger(key: string, op: DataOp) {
-      const matches = listeners[key] ?? [];
-      const wildcardMatches = listeners['*'] ?? [];
-
-      const callbacks = [...matches, ...wildcardMatches];
-      for (const callback of callbacks) {
-        callback(key, op);
       }
-    }
-
-    return {
-      get,
-      put,
-      remove,
-      has,
-      listen,
-      invalidate,
     };
   }
 
-  return {cacheForNamespace};
+  function trigger(key: string, op: DataOp) {
+    const matches = listeners[key] ?? [];
+    const wildcardMatches = listeners['*'] ?? [];
 
-  function getCache<T>(ns: string): MemoryCacheData<T> {
-    let cache = caches[ns];
-    if (!cache) {
-      caches[ns] = {cache: {}, listeners: {}};
-      cache = caches[ns];
+    const callbacks = [...matches, ...wildcardMatches];
+    for (const callback of callbacks) {
+      callback(key, op);
     }
-    return cache;
   }
+
+  return {
+    get,
+    put,
+    remove,
+    has,
+    listen,
+    invalidate,
+  };
 }
 
 /**
