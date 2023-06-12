@@ -29,7 +29,7 @@ export function scope(
 ): ProviderScope {
   // Will have type-safe accessors
   const providerMap = new Map<ProviderKey<any>, Provider<any>>();
-  const listeners = new Map<ProviderKey<any>, Listener<any>[]>();
+  const listeners = new Map<ProviderKey<any>, Map<number, Listener<any>>>();
 
   for (const provider of providers) {
     if (provider[KeyForProvides]) {
@@ -48,8 +48,10 @@ export function scope(
 
     provideValue: <T,>(key: ProviderKey<T>, value: T): void => {
       providerMap.set(key, () => value);
-      const ls = listeners.get(key) ?? [];
-      ls.forEach(fn => fn(value));
+      const ls = listeners.get(key) ?? new Map<number, Listener<any>>();
+      for (const fn of ls.values()) {
+        fn(value);
+      }
     },
 
     use: <T,>(key: ProviderKey<T>): T => {
@@ -74,13 +76,16 @@ export function scope(
     listen: <T,>(key: ProviderKey<T>, fn: Listener<T>): Unlisten => {
       let ls = listeners.get(key);
       if (!ls) {
-        ls = [];
+        ls = new Map<number, Listener<any>>();
         listeners.set(key, ls);
       }
-      ls.push(fn);
+
+      const listenerKey = idcount++;
+      ls.set(listenerKey, fn);
+
       return () => {
-        const ls = listeners.get(key)?.filter(l => l !== fn);
-        if (ls && ls.length > 1) {
+        ls!.delete(listenerKey);
+        if (ls && ls.size > 1) {
           listeners.set(key, ls);
         } else {
           listeners.delete(key);
@@ -89,3 +94,5 @@ export function scope(
     },
   };
 }
+
+let idcount = 0;
