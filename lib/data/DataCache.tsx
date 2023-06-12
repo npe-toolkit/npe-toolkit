@@ -73,7 +73,7 @@ function inMemoryCache<T>(): DataCache<T> {
     const existing = cache[id] as Opt<T>;
     if (existing) {
       if (Array.isArray(existing)) {
-        return [...existing] as T;
+        return [...existing] as any as T;
       } else {
         return {...existing};
       }
