@@ -77,7 +77,7 @@ export function useLogPromise<T>(): (
 type LogApi = (event: LogEvent) => void | Promise<void>;
 type UseLogApi = () => LogApi;
 
-export const LogApiKey = providerKeyFor<LogApi>(NullLogger());
+export const LogApiKey = providerKeyFor<LogApi>({defaultValue: NullLogger()});
 
 /**
  * Get the low level event logger. Most clients should *not* use this API directly,

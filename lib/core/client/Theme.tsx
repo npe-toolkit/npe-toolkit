@@ -25,7 +25,7 @@ const BASIC_BLACK: BasicTheme = {
   statusBarStyle: 'light',
 };
 
-const BasicThemeKey = providerKeyFor<BasicTheme>(BASIC_BLACK);
+const BasicThemeKey = providerKeyFor<BasicTheme>({defaultValue: BASIC_BLACK});
 
 export const useTheme = (): BasicTheme => {
   return use(BasicThemeKey);

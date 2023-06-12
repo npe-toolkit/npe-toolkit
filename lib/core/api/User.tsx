@@ -98,7 +98,7 @@ export class Profile extends BaseModel {
   @Field(TModel(User)) user?: User;
 }
 
-export const LoggedInUserKey = providerKeyFor<Opt<User>>();
+export const LoggedInUserKey = providerKeyFor<Opt<User>>({name: 'user'});
 
 /**
  * Special key to look up user without throwing.
@@ -109,7 +109,10 @@ export const LoggedInUserKey = providerKeyFor<Opt<User>>();
  * However some code paths need to be able to recover, and you can't just
  * catch the thrown promise as it can break hooks ordering rules.
  */
-export const LoggedInUserKeyNoThrow = providerKeyFor<Opt<User>>(null);
+export const LoggedInUserKeyNoThrow = providerKeyFor<Opt<User>>({
+  name: 'usernothrow',
+  defaultValue: null,
+});
 
 /**
  * Hook to get the current user.

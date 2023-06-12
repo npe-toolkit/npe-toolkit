@@ -82,12 +82,19 @@ export type Provider<T> = () => T;
  */
 export type ProviderKey<T> = {id: Symbol; defaultValue?: T};
 
+type ProviderKeyProps<T> = {
+  name?: string;
+  defaultValue?: T;
+};
 /**
  * Creates a key for providing values of type T.
  * The `name` parameter is optional and may be helpful for debugging.
  */
-export function providerKeyFor<T>(defaultValue?: T): ProviderKey<T> {
-  return {id: Symbol(), defaultValue};
+export function providerKeyFor<T>(
+  props: ProviderKeyProps<T> = {},
+): ProviderKey<T> {
+  const {name, defaultValue} = props;
+  return {id: Symbol(name), defaultValue};
 }
 
 /**

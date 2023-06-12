@@ -36,7 +36,7 @@ export type AppConfig = {
   fbAppId?: string;
 };
 
-export const AppConfigKey = providerKeyFor<AppConfig>();
+export const AppConfigKey = providerKeyFor<AppConfig>({name: 'appconfig'});
 
 export function useAppConfig(): AppConfig {
   return use(AppConfigKey);

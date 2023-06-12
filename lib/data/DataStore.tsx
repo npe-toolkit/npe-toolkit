@@ -113,7 +113,9 @@ export type DataStoreFactory = {
   get: <T extends BaseModel>(dataType: ModelClass<T>) => DataStore<T>;
 };
 
-export const DataStoreFactoryKey = providerKeyFor<DataStoreFactory>();
+export const DataStoreFactoryKey = providerKeyFor<DataStoreFactory>({
+  name: 'datastore',
+});
 
 /**
  *
