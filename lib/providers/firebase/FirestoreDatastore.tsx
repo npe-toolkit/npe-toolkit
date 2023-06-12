@@ -241,8 +241,9 @@ function firestoreDatastore(useCache: boolean): () => DataStoreFactory {
       const db = firestoreBackend(dataType, firestore, namespace);
       const cacheNs = `${namespace}/${modelName}`;
       const cache = useCache ? getInMemoryCache<T>(cacheNs) : noCache<T>();
+      const helpers = {cache, db, factory};
 
-      return fullDataStore(dataType, db, cache, factory);
+      return fullDataStore(dataType, helpers);
     }
     return factory;
   }

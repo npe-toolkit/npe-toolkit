@@ -202,7 +202,7 @@ export function firebaseStore<T extends BaseModel>(
     await doc.delete();
   }
 
-  function listen(id: string, fn: DataCallback) {
+  function listen() {
     return () => {};
   }
 

@@ -10,6 +10,9 @@ export type DataCache<T> = {
   /** Gets from cache, or falls through to fn */
   get(id: string, fn: () => Promise<Opt<T>>): Promise<Opt<T>>;
 
+  /** Gets from server first then usually from cache */
+  query(query: Query<T>, fn: () => Promise<T[]>): Promise<T[]>;
+
   /** Puts a value into the cache */
   put(id: string, op: DataOp, value: T): Promise<void>;
 
@@ -40,13 +43,9 @@ export function noCache<T>(): DataCache<T> {
     has: async () => false,
     listen: () => () => {},
     invalidate: async () => {},
+    query: async (_: Query<T>, fn: () => Promise<any[]>) => fn(),
   };
 }
-
-type MemoryCacheData<T> = {
-  cache: Record<string, T>;
-  listeners: Record<string, DataCallback[]>;
-};
 
 const inMemoryCaches: Record<string, DataCache<any>> = {};
 
@@ -68,11 +67,16 @@ export function getInMemoryCache<T>(namespace: string): DataCache<T> {
 function inMemoryCache<T>(): DataCache<T> {
   const cache: Record<string, T> = {};
   const listeners: Record<string, DataCallback[]> = {};
+  const queryLoaded: Record<string, boolean> = {};
 
   async function get(id: string, fn: () => Promise<Opt<T>>): Promise<Opt<T>> {
     const existing = cache[id] as Opt<T>;
     if (existing) {
-      return {...existing};
+      if (Array.isArray(existing)) {
+        return [...existing] as T;
+      } else {
+        return {...existing};
+      }
     }
 
     const value = await fn();
@@ -80,6 +84,24 @@ function inMemoryCache<T>(): DataCache<T> {
       await put(id, 'load', value);
     }
     return value;
+  }
+
+  async function query(query: Query<T>, fn: () => Promise<T[]>): Promise<T[]> {
+    const key = keyFor(query);
+    if (queryLoaded[key]) {
+      const matcher = toPredicate(query);
+      const matches = Object.values(cache).filter(v => matcher(v));
+      return matches.map(match => ({...match} as T));
+    } else {
+      const results = await fn();
+      for (const item of results) {
+        // @ts-ignore TODO: Likely need to have T extend HasId or BaseModel
+        const id = item.id as string;
+        await put(id, 'load', item);
+      }
+      queryLoaded[key] = true;
+      return results;
+    }
   }
 
   async function put(id: string, op: DataOp, value: T) {
@@ -93,7 +115,8 @@ function inMemoryCache<T>(): DataCache<T> {
       shouldTrigger = true;
     }
 
-    cache[id] = value;
+    const copy = (Array.isArray(value) ? [...value] : {...value}) as T;
+    cache[id] = copy;
     if (shouldTrigger) {
       trigger(id, op);
     }
@@ -146,6 +169,7 @@ function inMemoryCache<T>(): DataCache<T> {
 
   return {
     get,
+    query,
     put,
     remove,
     has,
@@ -180,3 +204,34 @@ function areValuesEqual(lhs: any, rhs: any): boolean {
 
   return true;
 }
+
+function keyFor(query: Query<any>) {
+  // TODO: Stable string, using only known keys
+  return JSON.stringify({where: query.where});
+}
+
+function toPredicate<T>(query: Query<any>): (item: T) => boolean {
+  const wheres = query.where ?? [];
+
+  return (item: T) => {
+    const asAny = item as any;
+    for (const where of wheres) {
+      const matcher = matchers[where.op];
+      if (!matcher(asAny[where.field], where.value)) {
+        return false;
+      }
+    }
+    return true;
+  };
+}
+
+const matchers = {
+  '==': (a: any, b: any) => a == b,
+  '!=': (a: any, b: any) => a != b,
+  '<': (a: any, b: any) => a < b,
+  '<=': (a: any, b: any) => a <= b,
+  '>': (a: any, b: any) => a > b,
+  '>=': (a: any, b: any) => a >= b,
+  in: (a: any, b: any) => b.includes(a),
+  'not-in': (a: any, b: any) => !b.includes(a),
+};

@@ -18,6 +18,13 @@ import {
   isModelRefType,
 } from '@toolkit/data/DataStore';
 
+// Supporting cast needed to implement a fully functional datastore
+type DataStoreHelpers<T extends BaseModel> = {
+  db: DataStore<T>;
+  cache: DataCache<T>;
+  factory: DataStoreFactory;
+};
+
 /**
  * Add key features to a storage layer-only implementation of a DataStore:
  * - Caching and optimistic updates
@@ -26,10 +33,9 @@ import {
  */
 export function fullDataStore<T extends BaseModel>(
   entityType: ModelClass<T>,
-  db: DataStore<T>,
-  cache: DataCache<T>,
-  factory: DataStoreFactory,
+  helpers: DataStoreHelpers<T>,
 ): DataStore<T> {
+  const {db, cache, factory} = helpers;
   const modelName = ModelUtil.getName(entityType);
 
   async function get(id: string, opts?: GetOpts) {
@@ -60,7 +66,7 @@ export function fullDataStore<T extends BaseModel>(
   }
 
   async function query(opts: QueryOpts<T> = {}) {
-    const results = await db.query(opts);
+    const results = await cache.query(opts, () => db.query(opts));
     results.forEach(v => cache.put(v.id, 'load', v));
     await walkEdges(results, opts?.edges || []);
 
@@ -299,4 +305,40 @@ export function commonUpdateLogic<T extends BaseModel>(
   out.updatedAt = out.updatedAt ?? now;
 
   return out as UpdaterWithId<T>;
+}
+
+function areValuesEqual(lhs: any, rhs: any, key: string = 'top'): boolean {
+  if (Array.isArray(lhs) || Array.isArray(rhs)) {
+    if (lhs.length !== rhs.length) {
+      return false;
+    }
+    for (let i = 0; i < lhs.length; i++) {
+      if (!areValuesEqual(lhs[i], rhs[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  if (typeof lhs !== 'object' || typeof rhs !== 'object') {
+    return lhs === rhs;
+  }
+
+  const lhsKeys = Object.keys(lhs);
+  const rhsKeys = Object.keys(rhs);
+
+  // Check if both objects have the same number of keys
+  if (lhsKeys.length !== rhsKeys.length) {
+    return false;
+  }
+
+  // Check if all keys in obj1 exist in obj2 and have the same value
+  for (const key of lhsKeys) {
+    // TODO: Move datastore specific logic to cache config option
+    if (key !== 'updatedAt' && !areValuesEqual(lhs[key], rhs[key], key)) {
+      return false;
+    }
+  }
+
+  return true;
 }
