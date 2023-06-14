@@ -64,8 +64,8 @@ export function scope(
         return parentScope.use(key);
       }
 
-      if (key.defaultValue !== undefined) {
-        return key.defaultValue;
+      if (key.defaultProvider !== undefined) {
+        return key.defaultProvider();
       }
 
       throw Error(

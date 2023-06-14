@@ -80,11 +80,12 @@ export type Provider<T> = () => T;
  *
  * Note: Need a nested symbol to get type safety when using the key
  */
-export type ProviderKey<T> = {id: Symbol; defaultValue?: T};
+export type ProviderKey<T> = {id: Symbol; defaultProvider?: Provider<T>};
 
 type ProviderKeyProps<T> = {
   name?: string;
   defaultValue?: T;
+  defaultProvider?: Provider<T>;
 };
 /**
  * Creates a key for providing values of type T.
@@ -93,8 +94,11 @@ type ProviderKeyProps<T> = {
 export function providerKeyFor<T>(
   props: ProviderKeyProps<T> = {},
 ): ProviderKey<T> {
-  const {name, defaultValue} = props;
-  return {id: Symbol(name), defaultValue};
+  let {name, defaultValue, defaultProvider} = props;
+  if (defaultValue !== undefined) {
+    defaultProvider = () => defaultValue!;
+  }
+  return {id: Symbol(name), defaultProvider};
 }
 
 /**
