@@ -1,4 +1,8 @@
-import {providerKeyFor, providesValue} from '@toolkit/core/providers/Providers';
+import {
+  providerKeyFor,
+  provides,
+  providesValue,
+} from '@toolkit/core/providers/Providers';
 import {Opt} from '@toolkit/core/util/Types';
 import {Query} from './DataStore';
 
@@ -27,6 +31,9 @@ export type DataCache<T> = {
 
   /** Invalidate a cache entry without repopulating */
   invalidate(id: string): Promise<void>;
+
+  /** Clear the entire cache */
+  clear(): Promise<void>;
 };
 
 // const for passing into get to only get the cached value.
@@ -39,6 +46,7 @@ export function noCache<T>(): DataCache<T> {
   return {
     get: (_, fn) => fn(),
     put: async () => {},
+    clear: async () => {},
     remove: async () => {},
     has: async () => false,
     listen: () => () => {},
@@ -48,6 +56,22 @@ export function noCache<T>(): DataCache<T> {
 }
 
 const inMemoryCaches: Record<string, DataCache<any>> = {};
+
+export type CacheManager = {
+  getCache<T>(namespace: string): DataCache<T>;
+  clear(): Promise<void>;
+};
+export const CacheManagerKey = providerKeyFor<CacheManager>();
+
+export const InMemoryCacheManager: CacheManager = {
+  getCache: getInMemoryCache,
+  clear: async () => {
+    for (const key in inMemoryCaches) {
+      await inMemoryCaches[key].clear();
+    }
+  },
+};
+providesValue(CacheManagerKey, InMemoryCacheManager);
 
 /**
  * Get the in-memory cache for a given namepace
@@ -65,9 +89,9 @@ export function getInMemoryCache<T>(namespace: string): DataCache<T> {
  * Create an in-memory cache.
  */
 function inMemoryCache<T>(): DataCache<T> {
-  const cache: Record<string, T> = {};
-  const listeners: Record<string, DataCallback[]> = {};
-  const queryLoaded: Record<string, boolean> = {};
+  let cache: Record<string, T> = {};
+  let listeners: Record<string, DataCallback[]> = {};
+  let queryLoaded: Record<string, boolean> = {};
 
   async function get(id: string, fn: () => Promise<Opt<T>>): Promise<Opt<T>> {
     const existing = cache[id] as Opt<T>;
@@ -156,6 +180,11 @@ function inMemoryCache<T>(): DataCache<T> {
     };
   }
 
+  async function clear() {
+    cache = {};
+    queryLoaded = {};
+  }
+
   function trigger(key: string, op: DataOp) {
     const matches = listeners[key] ?? [];
     const wildcardMatches = listeners['*'] ?? [];
@@ -174,6 +203,7 @@ function inMemoryCache<T>(): DataCache<T> {
     has,
     listen,
     invalidate,
+    clear,
   };
 }
 
