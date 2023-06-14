@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {StyleSheet, Text, View, useWindowDimensions} from 'react-native';
 import {useRoute} from '@react-navigation/core';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {StatusBar, StatusContainer} from '@toolkit/core/client/Status';
@@ -37,6 +37,7 @@ const TopbarLayout = (props: LayoutProps & NavItems) => {
   const {children, style} = props;
   const loadingView = props.loading ?? LoadingView;
   const onError = props.onError ?? logError;
+  const {height: maxHeight} = useWindowDimensions();
 
   const route = useRoute();
   const key = route.key;
@@ -45,7 +46,7 @@ const TopbarLayout = (props: LayoutProps & NavItems) => {
 
   return (
     <StatusContainer>
-      <SafeAreaView style={S.top}>
+      <SafeAreaView style={[S.top, {maxHeight}]}>
         <View style={{flex: 1, backgroundColor: '#F0F0F0'}}>
           {navStyle === 'full' && <TopHeader {...props} />}
           <StatusBar style={{alignItems: 'center'}} />
@@ -115,7 +116,11 @@ const TopHeader = (props: LayoutProps & NavItems) => {
 };
 
 const S = StyleSheet.create({
-  top: {flex: 1, alignSelf: 'stretch', backgroundColor: '#FFF'},
+  top: {
+    flex: 1,
+    alignSelf: 'stretch',
+    backgroundColor: '#FFF',
+  },
   title: {
     fontSize: 26,
     fontWeight: '600',
