@@ -138,6 +138,7 @@ export function useDataStore<T extends BaseModel>(
 
 // Testing this out as a separate function outside of dataStore API.
 // If usage is widespread will likely move into the API
+// @deprecated use `datastore.required()` instead
 export async function getRequired<T extends BaseModel>(
   store: DataStore<T>,
   id: string,
