@@ -106,10 +106,8 @@ function inMemoryCache<T>(): DataCache<T> {
 
   async function put(id: string, op: DataOp, value: T) {
     let shouldTrigger;
-
     const inCache = await get(id, FromCache);
     if (inCache && op == 'update') {
-      op = 'update';
       shouldTrigger = !areValuesEqual(inCache, value);
     } else if (op == 'add') {
       shouldTrigger = true;
@@ -117,6 +115,7 @@ function inMemoryCache<T>(): DataCache<T> {
 
     const copy = (Array.isArray(value) ? [...value] : {...value}) as T;
     cache[id] = copy;
+
     if (shouldTrigger) {
       trigger(id, op);
     }
