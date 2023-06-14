@@ -1,6 +1,11 @@
 import {Opt} from '@toolkit/core/util/Types';
 import {uuidv4} from '@toolkit/core/util/Util';
-import {DataCache, DataCallback, FromCache} from '@toolkit/data/DataCache';
+import {
+  DataCache,
+  DataCallback,
+  DataOp,
+  FromCache,
+} from '@toolkit/data/DataCache';
 import {
   BaseModel,
   DataStore,
@@ -120,6 +125,10 @@ export function fullDataStore<T extends BaseModel>(
 
   function listen(id: string, fn: DataCallback) {
     return cache.listen(id, fn);
+  }
+
+  async function putCache(id: string, op: DataOp, value: T) {
+    await cache.put(id, op, value);
   }
 
   async function loadEdgesFromIds(
@@ -273,6 +282,7 @@ export function fullDataStore<T extends BaseModel>(
     query,
     getAll,
     listen,
+    putCache,
   };
 }
 

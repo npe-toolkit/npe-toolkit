@@ -382,6 +382,8 @@ export function firebaseStore<T extends BaseModel>(
     return results;
   }
 
+  async function putCache() {}
+
   return {
     get,
     required,
@@ -391,6 +393,7 @@ export function firebaseStore<T extends BaseModel>(
     query,
     getAll,
     listen,
+    putCache,
   };
 }
 

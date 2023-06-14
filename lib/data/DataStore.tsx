@@ -5,7 +5,7 @@ import {providerKeyFor, use} from '@toolkit/core/providers/Providers';
 import {CodedError} from '@toolkit/core/util/CodedError';
 import {Opt} from '@toolkit/core/util/Types';
 import {BaseModel, ModelClass} from '@toolkit/data/pads/model';
-import {DataCallback} from './DataCache';
+import {DataCallback, DataOp} from './DataCache';
 
 // Export for convenience
 export {
@@ -31,6 +31,7 @@ export type DataStore<T extends BaseModel> = {
   query: (opts?: QueryOpts<T>) => Promise<T[]>;
   getAll: (opts?: GetAllOpts<T>) => Promise<T[]>;
   listen: (id: string, fn: DataCallback) => UnsubscribeFn;
+  putCache: (id: string, op: DataOp, value: T) => Promise<void>;
   // listenQuery: (query: Query<T>, fn: DataCallback) => UnsubscribeFn;
 };
 
