@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {useReloadState} from '@toolkit/core/client/Reload';
 import Promised from '@toolkit/core/util/Promised';
+import {withAsyncLoad} from './Loadable';
 
 /**
  * Pattern for React Components that load their own data.
@@ -174,6 +175,10 @@ type Loader<T> = () => T | Promise<T>;
  * Components that call `useLoad()` need to be wrapped using this method to create a HOC
  */
 export function useWithLoad<Props>(Component: React.ComponentType<Props>) {
+  // @ts-ignore Hook for legacy `Loadable` components until all are converted to `useLoad()`
+  if (Component.load) {
+    return React.useMemo(() => withAsyncLoad(Component as any), [Component]);
+  }
   return React.useMemo(() => withLoad(Component), [Component]);
 }
 

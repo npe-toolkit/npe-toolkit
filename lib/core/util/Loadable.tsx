@@ -157,25 +157,6 @@ function normalizedProps(props: Record<string, any>): string {
   return JSON.stringify(props, sortedKeys);
 }
 
-/**
- * Memoized version of withAsyncLoad().
- *
- * Use this for all cases of creating a HOC from a component dynamically
- * within another component.
- *
- * (important to not recreate new component instances each time)
- */
-export function useAsyncLoad<Props extends HasAsync>(
-  component: Loadable<Props>,
-): React.ComponentType<Sync<Props>> {
-  if (component.load) {
-    return React.useMemo(() => withAsyncLoad(component), [component]);
-  } else {
-    // @ts-ignore We do this so that same # of hooks are called each render
-    return React.useMemo(() => component, [component]);
-  }
-}
-
 type LoadWrapperProps = {
   promise: {current?: Promised<AnyProps>};
   component: Loadable<any>;

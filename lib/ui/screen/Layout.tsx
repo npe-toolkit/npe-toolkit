@@ -4,7 +4,8 @@ import {CallerIdContext} from '@toolkit/core/api/Log';
 import {ErrorHandler} from '@toolkit/core/client/TriState';
 import {useScope} from '@toolkit/core/providers/Client';
 import {providerKeyFor, use} from '@toolkit/core/providers/Providers';
-import {PropsFor, useAsyncLoad} from '@toolkit/core/util/Loadable';
+import {PropsFor} from '@toolkit/core/util/Loadable';
+import {useWithLoad} from '@toolkit/core/util/UseLoad';
 import {Screen, ScreenProps} from '@toolkit/ui/screen/Screen';
 import {useNavState} from './Nav';
 
@@ -34,7 +35,7 @@ export function ApplyLayout<S extends Screen<any>>(props: Props<S>) {
   };
 
   const screenPropsRef = React.useRef<ScreenProps>(baseScreenProps);
-  const Component = useAsyncLoad(screen);
+  const Component = useWithLoad(screen);
   const {location} = useNavState();
   const scope = useScope();
   const [refresh, setRefesh] = React.useState(0);
