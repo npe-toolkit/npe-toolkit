@@ -89,7 +89,7 @@ export function fullDataStore<T extends BaseModel>(
 
     const newValue = await db.create(value);
     const op = opts.optimistic ? 'update' : 'add';
-    cache.put(id, op, newValue);
+    await cache.put(id, op, newValue);
     return newValue;
   }
 
