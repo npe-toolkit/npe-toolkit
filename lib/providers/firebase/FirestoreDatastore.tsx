@@ -6,7 +6,7 @@
  */
 
 import firebase from 'firebase/app';
-import {provides, providesValue, use} from '@toolkit/core/providers/Providers';
+import {provides, use} from '@toolkit/core/providers/Providers';
 import {useAppConfig} from '@toolkit/core/util/AppConfig';
 import {Opt} from '@toolkit/core/util/Types';
 import {getInMemoryCache, noCache} from '@toolkit/data/DataCache';
@@ -30,7 +30,7 @@ import {
   fullDataStore,
 } from '@toolkit/data/DataStoreImpl';
 import {Type as SchemaType} from '@toolkit/data/pads/schema';
-import {getFirestore} from '@toolkit/providers/firebase/Config';
+import {FirestoreKey} from '@toolkit/providers/firebase/Config';
 import {
   getFirestorePathPrefix,
   getInstanceFor,
@@ -115,6 +115,7 @@ export function firestoreBackend<T extends BaseModel>(
     // Not implemented for the backend
     return () => {};
   }
+  async function putCache() {}
 
   return {
     get,
@@ -125,6 +126,7 @@ export function firestoreBackend<T extends BaseModel>(
     query,
     getAll,
     listen,
+    putCache,
   };
 }
 
@@ -223,19 +225,13 @@ export type TypedSchema<T extends BaseModel> = {
 };
 
 function firestoreDatastore(useCache: boolean): () => DataStoreFactory {
-  // Three scopes were needed - sorry it makes it a little hard to reason about
-
-  // 2. Provider scope is created when injecting, so it can use providers with hooks
-  //    to get the db configuration.
   function useDataStoreFactory() {
     // TODO: Use app/firestore from context
-    const firestore = getFirestore();
+    const firestore = use(FirestoreKey);
     const appConfig = useAppConfig();
     const namespace = getInstanceFor(appConfig);
     const factory = {get};
 
-    // 3. Specific instances of datastores are created within the factory,
-    //    without using providers, so they can be called for recursive edge walking
     function get<T extends BaseModel>(dataType: ModelClass<T>): DataStore<T> {
       const modelName = ModelUtil.getName(dataType);
       const db = firestoreBackend(dataType, firestore, namespace);

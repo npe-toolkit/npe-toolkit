@@ -1,4 +1,5 @@
 import firebase from 'firebase/app';
+import {providerKeyFor, provides} from '@toolkit/core/providers/Providers';
 
 type Firestore = firebase.firestore.Firestore;
 
@@ -73,11 +74,27 @@ export function getFirebaseLib(type?: 'default' | 'admin') {
 const EMULATOR_FIRESTORE_HOST = '127.0.0.1';
 const EMULATOR_FIRESTORE_PORT = 8080;
 
-export function getFirestore() {
+/**
+ * Supports a scoped Firestore instance, which enables shared
+ * client and server code for the implementation of the DataStore.
+ * - Client uses Firebase 8.0 client libraries
+ * - Server uses firebase-admin datastore, or client libraries when
+ *   calls are scoped to a specific user credential
+ */
+export const FirestoreKey = providerKeyFor<Firestore>({
+  name: 'firestore',
+  defaultProvider: useFirestore,
+});
+
+export function useFirestore() {
   let firestore = getFirebaseLib().firestore();
   initializeOnce(firestore);
   return firestore;
 }
+provides(FirestoreKey, useFirestore);
+
+// @deprecated Temporary alias while deprecating
+export const getFirestore = useFirestore;
 
 const initializedFirestores = new Map<Firestore, boolean>();
 
