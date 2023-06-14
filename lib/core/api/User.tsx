@@ -1,4 +1,4 @@
-import {use} from '@toolkit/core/providers/Providers';
+import {providerKeyFor, use} from '@toolkit/core/providers/Providers';
 import {type Opt} from '@toolkit/core/util/Types';
 import {
   BaseModel,
@@ -9,7 +9,6 @@ import {
   TString,
 } from '@toolkit/data/DataStore';
 import {NotLoggedInError} from '@toolkit/tbd/CommonErrors';
-import {providerKeyFor} from '../providers/Providers';
 
 /**
  * Role for users in an app.

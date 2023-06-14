@@ -1,5 +1,5 @@
 import {Role, User} from '@toolkit/core/api/User';
-import {use} from '@toolkit/core/providers/Providers';
+import {providerKeyFor, use} from '@toolkit/core/providers/Providers';
 import {CodedError} from '@toolkit/core/util/CodedError';
 import {Opt} from '@toolkit/core/util/Types';
 import {
@@ -8,7 +8,6 @@ import {
   INVALID_TOKEN_OLD,
   NotLoggedInError,
 } from '@toolkit/tbd/CommonErrors';
-import {providerKeyFor} from '../providers/Providers';
 
 /** Types of auth */
 export type AuthType =

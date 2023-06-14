@@ -1,8 +1,10 @@
 import * as React from 'react';
-import {LoggedInUserKey, LoggedInUserKeyNoThrow} from '../api/User';
-import {Opt} from '../util/Types';
-import {ProviderScope, scope} from './ProviderImpl';
-import {ProviderKey, setUseProviderImpl} from './Providers';
+import {ProviderScope, scope} from '@toolkit/core/providers/ProviderImpl';
+import {
+  ProviderKey,
+  setUseProviderImpl,
+} from '@toolkit/core/providers/Providers';
+import {Opt} from '@toolkit/core/util/Types';
 
 export type ScopeProps = {
   providers: any[];
