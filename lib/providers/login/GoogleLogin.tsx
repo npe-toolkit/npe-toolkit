@@ -1,4 +1,5 @@
 import {useIdTokenAuthRequest} from 'expo-auth-session/providers/google';
+import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import {LoginCredential} from '@toolkit/core/api/Auth';
 import {
@@ -17,11 +18,18 @@ export type GoogleLoginConfig = {
   iosClientId?: string;
   webClientId?: string;
   expoId?: string;
+  bundles?: Record<string, GoogleLoginConfig>;
 };
 
 export function googleAuthProvider(
   cfg: GoogleLoginConfig = {},
 ): IdentityProvider {
+  // iOS needs a different ID per bundle (likely Android too...)
+  const bundleId = Constants.expoConfig?.ios?.bundleIdentifier;
+  if (bundleId && cfg.bundles?.[bundleId]) {
+    cfg = {...cfg, ...cfg.bundles[bundleId]};
+  }
+
   // Expo and web can use same client ID, so use web if Expo not set
   cfg.expoClientId = cfg.expoClientId || cfg.webClientId;
   const loginOpts = cfg.expoId ? {projectNameForProxy: cfg.expoId} : {};
