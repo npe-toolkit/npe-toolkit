@@ -11,6 +11,7 @@ import {
   Order as _Order,
   isArrayType,
   isModelRefType,
+  useDataStore,
 } from '@toolkit/data/DataStore';
 import {
   Edge,
@@ -29,7 +30,6 @@ import {
 } from '@toolkit/data/pads/repo';
 import {OptionalId, Success} from '@toolkit/data/pads/utils';
 import {toRepoRepresentation} from '@toolkit/experimental/deletion/providers/firebase/Deletion';
-import {getAdminDataStore} from '@toolkit/providers/firebase/server/Firestore';
 
 type Transaction = admin.firestore.Transaction;
 type RepoOpOptions = {
@@ -66,7 +66,7 @@ export class FirestoreDeletionRepo<T extends BaseModel> implements Repo<T> {
   constructor(mClass: ModelClass<T>, options?: RepoOpOptions) {
     this.modelClass = mClass;
     this.options = options ?? {};
-    this.adminStore = getAdminDataStore(this.modelClass);
+    this.adminStore = useDataStore(this.modelClass);
   }
 
   async create(m: OptionalId<T>): Promise<T> {

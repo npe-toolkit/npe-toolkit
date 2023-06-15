@@ -1,7 +1,7 @@
 import {AuthData} from 'firebase-functions/lib/common/providers/https';
 import {Role} from '@toolkit/core/api/User';
 import {Opt} from '@toolkit/core/util/Types';
-import {getAdminDataStore} from '@toolkit/providers/firebase/server/Firestore';
+import {useDataStore} from '@toolkit/data/DataStore';
 import {AllowlistEntry} from '@toolkit/tbd/Allowlist';
 
 function hasValue(value: Opt<string>) {
@@ -11,7 +11,7 @@ function hasValue(value: Opt<string>) {
 export async function getAllowlistMatchedRoles(
   auth: AuthData,
 ): Promise<Role[]> {
-  const allowlistStore = getAdminDataStore(AllowlistEntry);
+  const allowlistStore = useDataStore(AllowlistEntry);
   const {phone, email} = auth.token;
 
   let [phoneEntry, emailEntry] = await Promise.all([

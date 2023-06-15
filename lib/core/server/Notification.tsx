@@ -1,5 +1,5 @@
 import {User} from '@toolkit/core/api/User';
-import {getAdminDataStore} from '@toolkit/providers/firebase/server/Firestore';
+import {useDataStore} from '@toolkit/data/DataStore';
 import NotificationChannel from '@toolkit/services/notifications/NotificationChannel';
 import {
   NotificationPref,
@@ -9,9 +9,9 @@ import {
 import {NotificationsSendAPI} from '@toolkit/services/notifications/NotificationsClient';
 
 export const getFirebaseNotificationsSendAPI = (): NotificationsSendAPI => {
-  const userStore = getAdminDataStore(User);
-  const tokenStore = getAdminDataStore(StorageToken);
-  const prefsStore = getAdminDataStore(NotificationPref);
+  const userStore = useDataStore(User);
+  const tokenStore = useDataStore(StorageToken);
+  const prefsStore = useDataStore(NotificationPref);
 
   const getUserNotfEndpoints = async (
     userId: string,
