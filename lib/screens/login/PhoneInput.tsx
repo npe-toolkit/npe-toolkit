@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import * as React from 'react';
 import {KeyboardAvoidingView, Platform, StyleSheet, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {FirebaseRecaptchaBanner} from 'expo-firebase-recaptcha';
@@ -6,8 +6,10 @@ import {format, isValidPhoneNumber, parse} from 'libphonenumber-js';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useAuth} from '@toolkit/core/api/Auth';
 import {User} from '@toolkit/core/api/User';
+import {useAction} from '@toolkit/core/client/Action';
 import {useTheme} from '@toolkit/core/client/Theme';
 import {LoginFlowBackButton} from '@toolkit/screens/login/LoginScreenParts';
+import {useTextInput} from '@toolkit/ui/UiHooks';
 import {useComponents} from '@toolkit/ui/components/Components';
 import {KeyboardDismissPressable} from '@toolkit/ui/components/Tools';
 import {Screen} from '@toolkit/ui/screen/Screen';
@@ -27,36 +29,21 @@ export type PhoneLoginParams = {
 };
 
 const PhoneInput: Screen<PhoneLoginParams> = props => {
-  const {phone = ''} = props;
-  const [isLoading, setIsLoading] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState(phone);
-  const [isValid, setIsValid] = useState(false);
   const {top} = useSafeAreaInsets();
   const auth = useAuth();
   const {textColor} = useTheme();
   const {navigate} = useNavigation<any>();
   const {backgroundColor} = useTheme();
-  const {Button, TextInput, Body, Title} = useComponents();
+  const {Button, Body, Title} = useComponents();
+  const [PhoneInput, phone] = useTextInput(props.phone ?? '');
+  const [onSubmit, submitting] = useAction(sendCode);
+  const isValid = isValidPhoneNumber(phone, 'US');
 
-  useEffect(() => {
-    setIsValid(isValidPhoneNumber(phoneNumber, 'US'));
-  }, [phoneNumber]);
-
-  const onSubmit = async () => {
-    setIsLoading(true);
-    try {
-      const normalizedPhoneNumber = format(
-        parse(phoneNumber, 'US'),
-        'INTERNATIONAL',
-      );
-      await auth.sendCode('phone', normalizedPhoneNumber);
-      navigate('PhoneVerification', {...props, phone: normalizedPhoneNumber});
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  async function sendCode() {
+    const normalizedPhoneNumber = format(parse(phone, 'US'), 'INTERNATIONAL');
+    await auth.sendCode('phone', normalizedPhoneNumber);
+    navigate('PhoneVerification', {...props, phone: normalizedPhoneNumber});
+  }
 
   return (
     <KeyboardAvoidingView
@@ -74,38 +61,19 @@ const PhoneInput: Screen<PhoneLoginParams> = props => {
               rates apply.
             </Body>
           </View>
-
-          <TextInput
-            label="Phone Number"
-            type="primary"
-            autoComplete="tel"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-          />
-
+          <PhoneInput label="Phone Number" type="primary" autoComplete="tel" />
           <Button
             type="primary"
-            style={{width: '100%', alignSelf: 'center'}}
             disabled={!isValid}
-            loading={isLoading}
+            loading={submitting}
             onPress={onSubmit}>
             Continue
           </Button>
         </View>
         <View>
           <FirebaseRecaptchaBanner
-            textStyle={{
-              opacity: 0.9,
-              color: textColor,
-              fontSize: 14,
-              textAlign: 'center',
-            }}
-            linkStyle={{
-              opacity: 0.9,
-              color: textColor,
-              fontSize: 14,
-              fontWeight: '600',
-            }}
+            textStyle={[S.footerText, {color: textColor}]}
+            linkStyle={[S.footerLink, {color: textColor}]}
           />
         </View>
       </View>
@@ -128,5 +96,15 @@ const S = StyleSheet.create({
     marginBottom: 12,
     flex: 1,
     justifyContent: 'space-between',
+  },
+  footerText: {
+    opacity: 0.9,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  footerLink: {
+    opacity: 0.9,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
