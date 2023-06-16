@@ -22,6 +22,7 @@ import {useFirebasePhoneAuth} from '@toolkit/providers/firebase/client/PhoneUtil
 import {NotLoggedInError} from '@toolkit/tbd/CommonErrors';
 import 'firebase/auth';
 import * as React from 'react';
+import {Platform} from 'react-native';
 
 const {
   FacebookAuthProvider,
@@ -173,7 +174,16 @@ export function FirebaseAuthService(props: Props) {
         throw Error(`Unsupported auth type for Firebase login: ${type}`);
     }
 
-    const firebaseCred = await auth.signInWithCredential(cred);
+    function signIn(cred: firebase.auth.AuthCredential) {
+      const firebaseCred = auth.signInWithCredential(cred);
+      // Workaround for phone auth timing out
+      if (Platform.OS === 'ios' && type == 'phone') {
+        console.log('iossind');
+        return auth.signInWithCredential(cred);
+      }
+      return firebaseCred;
+    }
+    const firebaseCred = await signIn(cred);
     const firebaseAccount = firebaseCred.user;
     const newUser = await accountChange(firebaseAccount);
 
