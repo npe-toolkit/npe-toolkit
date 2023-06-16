@@ -3,6 +3,7 @@ import {Image, StyleSheet, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import Markdown from 'react-native-markdown-display';
 import {AuthType, useAuth} from '@toolkit/core/api/Auth';
+import {User} from '@toolkit/core/api/User';
 import {useAction} from '@toolkit/core/client/Action';
 import {StatusBar, StatusContainer} from '@toolkit/core/client/Status';
 import {useAppInfo, useTheme} from '@toolkit/core/client/Theme';
@@ -107,6 +108,10 @@ export function AuthenticationButtons(props: {
     const tryConnect = type === 'google' ? tryGoogleLogin : tryFacebookLogin;
     const creds = await tryConnect();
     const user = await auth.login(creds);
+    onLogin(user);
+  }
+
+  function onLogin(user: User) {
     if (user.canLogin) {
       navigate(next);
     } else if (user.cantLoginReason === 'onboarding' && onboarding != null) {
@@ -119,7 +124,6 @@ export function AuthenticationButtons(props: {
     if (type === 'facebook') {
       return (
         <FacebookButton
-          key={idx}
           onPress={() => tryLoginAction('facebook')}
           loading={loggingIn}
         />
@@ -127,15 +131,12 @@ export function AuthenticationButtons(props: {
     } else if (type === 'google') {
       return (
         <GoogleButton
-          key={idx}
           onPress={() => tryLoginAction('google')}
           loading={loggingIn}
         />
       );
     } else if (type === 'phone') {
-      return (
-        <PhoneButton key={idx} onPress={() => navigate('PhoneInput', {next})} />
-      );
+      return <PhoneButton onPress={() => navigate('PhoneInput', {onLogin})} />;
     } else {
       return null;
     }

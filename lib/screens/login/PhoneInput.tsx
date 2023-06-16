@@ -1,27 +1,39 @@
 import React, {useEffect, useState} from 'react';
 import {KeyboardAvoidingView, StyleSheet, View} from 'react-native';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import {FirebaseRecaptchaBanner} from 'expo-firebase-recaptcha';
 import {format, isValidPhoneNumber, parse} from 'libphonenumber-js';
-import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useAuth} from '@toolkit/core/api/Auth';
+import {User} from '@toolkit/core/api/User';
 import {useTheme} from '@toolkit/core/client/Theme';
 import {LoginFlowBackButton} from '@toolkit/screens/login/LoginScreenParts';
 import {useComponents} from '@toolkit/ui/components/Components';
 import {KeyboardDismissPressable} from '@toolkit/ui/components/Tools';
+import {Screen} from '@toolkit/ui/screen/Screen';
 
-type Params = {
+export type PhoneLoginParams = {
+  /**
+   * Can pass in the ID of a screen to navigate to on completion.
+   * Defaults to Home if not set and onComplete is not set
+   */
   next?: string;
+
+  /** Action to take after completing flow (alternative to `next`) */
+  onLogin?: (user: User) => void;
+
+  /** Phone # set in flow already */
+  phone?: string;
 };
 
-export default function PhoneInput() {
+const PhoneInput: Screen<PhoneLoginParams> = props => {
+  const {phone = ''} = props;
   const [isLoading, setIsLoading] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState(phone);
   const [isValid, setIsValid] = useState(false);
   const {top} = useSafeAreaInsets();
   const auth = useAuth();
   const {textColor} = useTheme();
-  const params = useRoute().params as Params;
   const {navigate} = useNavigation<any>();
   const {backgroundColor} = useTheme();
   const {Button, TextInput, Body, Title} = useComponents();
@@ -38,10 +50,7 @@ export default function PhoneInput() {
         'INTERNATIONAL',
       );
       await auth.sendCode('phone', normalizedPhoneNumber);
-      navigate('PhoneVerification', {
-        phone: normalizedPhoneNumber,
-        next: params?.next,
-      });
+      navigate('PhoneVerification', {...props, phone: normalizedPhoneNumber});
     } catch (e) {
       console.error(e);
     } finally {
@@ -54,9 +63,9 @@ export default function PhoneInput() {
       style={[S.root, {backgroundColor}]}
       behavior={'padding'}
       keyboardVerticalOffset={top}>
-      <SafeAreaView style={S.container}>
-        <LoginFlowBackButton />
+      <View style={S.padded}>
         <KeyboardDismissPressable />
+        <LoginFlowBackButton />
         <View style={S.spaced}>
           <View>
             <Title mb={16}>Sign up or sign in</Title>
@@ -83,28 +92,38 @@ export default function PhoneInput() {
             Continue
           </Button>
         </View>
-        <FirebaseRecaptchaBanner
-          textStyle={{
-            opacity: 0.9,
-            color: textColor,
-            fontSize: 14,
-            textAlign: 'center',
-          }}
-          linkStyle={{
-            opacity: 0.9,
-            color: textColor,
-            fontSize: 14,
-            fontWeight: '600',
-          }}
-        />
-      </SafeAreaView>
+        <View>
+          <FirebaseRecaptchaBanner
+            textStyle={{
+              opacity: 0.9,
+              color: textColor,
+              fontSize: 14,
+              textAlign: 'center',
+            }}
+            linkStyle={{
+              opacity: 0.9,
+              color: textColor,
+              fontSize: 14,
+              fontWeight: '600',
+            }}
+          />
+        </View>
+      </View>
     </KeyboardAvoidingView>
   );
-}
+};
+
+export default PhoneInput;
 
 const S = StyleSheet.create({
-  root: {flex: 1},
-  container: {padding: 16, flex: 1},
+  root: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  padded: {
+    padding: 24,
+    flex: 1,
+  },
   spaced: {
     marginTop: 18,
     marginBottom: 12,

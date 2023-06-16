@@ -1,55 +1,55 @@
 import React, {useState} from 'react';
 import {KeyboardAvoidingView, StyleSheet, View} from 'react-native';
-import {useNavigation, useRoute} from '@react-navigation/native';
-import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useAuth} from '@toolkit/core/api/Auth';
 import {useTheme} from '@toolkit/core/client/Theme';
-import {toError} from '@toolkit/core/util/Types';
+import {toUserMessage} from '@toolkit/core/util/CodedError';
 import {LoginFlowBackButton} from '@toolkit/screens/login/LoginScreenParts';
 import {useComponents} from '@toolkit/ui/components/Components';
 import {KeyboardDismissPressable} from '@toolkit/ui/components/Tools';
+import {Screen} from '@toolkit/ui/screen/Screen';
+import {PhoneLoginParams} from './PhoneInput';
 
-type Params = {
-  phone: string;
-  next?: string;
-};
-
-export default function PhoneVerification() {
+const PhoneVerification: Screen<PhoneLoginParams> = props => {
+  const {next = 'Home', onLogin, phone} = props;
   const [isLoading, setIsLoading] = useState(false);
   const {navigate} = useNavigation<any>();
   const {top} = useSafeAreaInsets();
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState('');
-  const params = useRoute().params as Params;
   const auth = useAuth();
   const {backgroundColor} = useTheme();
-  const next = params?.next || 'Home';
   const {Button, TextInput, Title, Body, Error} = useComponents();
 
   const onSubmit = async () => {
     setIsLoading(true);
 
     try {
-      const phone = params.phone;
       const user = await auth.login({type: 'phone', id: phone, token: code});
-      navigate(next);
+      if (onLogin) {
+        onLogin(user);
+      } else {
+        navigate(next);
+      }
     } catch (e) {
+      console.log(e);
       setCode('');
-      setError(toError(e).message);
+      setError(toUserMessage(e));
     }
     setIsLoading(false);
   };
 
   return (
     <KeyboardAvoidingView
-      style={[styles.root, {backgroundColor}]}
+      style={[S.root, {backgroundColor}]}
       behavior={'padding'}
       keyboardVerticalOffset={top}>
-      <SafeAreaView style={styles.container}>
-        <LoginFlowBackButton />
+      <View style={S.padded}>
         <KeyboardDismissPressable />
+        <LoginFlowBackButton />
 
-        <View style={styles.spaced}>
+        <View style={S.spaced}>
           <View>
             <Title mb={16}>Verification</Title>
             <Body>
@@ -66,13 +66,12 @@ export default function PhoneVerification() {
               value={code}
               onChangeText={setCode}
             />
-            <View style={styles.row}>
-              {error != null && (
-                <View style={{paddingLeft: 10}}>
-                  <Error>Error - {error}</Error>
-                </View>
-              )}
-              <View style={{width: 1}} />
+            {error != null && (
+              <View style={{paddingLeft: 10}}>
+                <Error>Error - {error}</Error>
+              </View>
+            )}
+            <View style={S.row}>
               <Button
                 type="secondary"
                 labelStyle={{fontSize: 14}}
@@ -90,19 +89,31 @@ export default function PhoneVerification() {
             Verify
           </Button>
         </View>
-      </SafeAreaView>
+      </View>
     </KeyboardAvoidingView>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  root: {flex: 1},
+export default PhoneVerification;
+
+const S = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  padded: {
+    padding: 24,
+    flex: 1,
+  },
   row: {
     paddingVertical: 16,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
   },
-  container: {padding: 16, flex: 1},
-  spaced: {marginTop: 18, flex: 1, justifyContent: 'space-between'},
+  spaced: {
+    marginTop: 18,
+    flex: 1,
+    justifyContent: 'space-between',
+  },
 });

@@ -178,7 +178,6 @@ export function FirebaseAuthService(props: Props) {
       const firebaseCred = auth.signInWithCredential(cred);
       // Workaround for phone auth timing out
       if (Platform.OS === 'ios' && type == 'phone') {
-        console.log('iossind');
         return auth.signInWithCredential(cred);
       }
       return firebaseCred;
