@@ -26,6 +26,7 @@ type Props = {
   children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   pressableStyle?: StyleProp<ViewStyle>;
+  delay?: number;
 } & React.ComponentProps<typeof Pressable>;
 
 export function PressableSpring({
@@ -34,25 +35,33 @@ export function PressableSpring({
   children,
   onPressIn,
   onPressOut,
+  delay = 0,
   ...props
 }: Props) {
-  const [isPressed, setIsPressed] = React.useState(false);
+  const isPressed = React.useRef(false);
+  const [displayPressed, setDisplayPressed] = React.useState(false);
 
   return (
     <Pressable
       style={pressableStyle}
       {...props}
       onPressIn={e => {
-        setIsPressed(true);
+        isPressed.current = true;
+        setTimeout(() => {
+          if (isPressed.current) {
+            setDisplayPressed(true);
+          }
+        }, delay);
         onPressIn && onPressIn(e);
       }}
       onPressOut={e => {
-        setIsPressed(false);
+        isPressed.current = false;
+        setDisplayPressed(false);
         onPressOut && onPressOut(e);
       }}>
       <MotiView
         style={style}
-        animate={{scale: isPressed ? 0.9 : 1}}
+        animate={{scale: displayPressed ? 0.9 : 1}}
         transition={{type: 'spring', stiffness: 200, mass: 0.25}}>
         {children}
       </MotiView>
