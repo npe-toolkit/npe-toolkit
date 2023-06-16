@@ -81,7 +81,7 @@ export function firestoreBackend<T extends BaseModel>(
   async function create(v: Updater<T>) {
     const fields = commonCreateLogic(v, modelName);
     const doc = collection.doc(fields.id);
-    const firestoreFields = toFirestoreFields<T>(fields, schema);
+    const firestoreFields = toFirestoreFields<T>(fields, schema, true);
     await doc.set(firestoreFields);
     return await required(fields.id);
   }
@@ -89,7 +89,7 @@ export function firestoreBackend<T extends BaseModel>(
   async function update(v: Updater<T>) {
     const fields = commonUpdateLogic(v);
     const doc = collection.doc(fields.id);
-    const firestoreFields = toFirestoreFields<T>(fields, schema);
+    const firestoreFields = toFirestoreFields<T>(fields, schema, false);
     await doc.set(firestoreFields, {merge: true});
     return await required(fields.id);
   }
@@ -157,6 +157,7 @@ function toModel<T extends BaseModel>(
 function toFirestoreFields<T extends BaseModel>(
   fields: Updater<T>,
   schema: TypedSchema<T>,
+  isCreate: boolean,
 ): FirestoreDoc<T> {
   const out = {} as FirestoreDoc<T>;
   for (const key in schema) {
@@ -166,7 +167,9 @@ function toFirestoreFields<T extends BaseModel>(
     if (key == 'id' || !(key in fields)) {
       continue;
     } else if (value == FieldDelete) {
-      out[key] = FirestoreDelete;
+      if (!isCreate) {
+        out[key] = FirestoreDelete;
+      }
     }
     // @ts-ignore TODO: Make this typesafe
     else if (isModelRefType(schemaType?.type)) {
