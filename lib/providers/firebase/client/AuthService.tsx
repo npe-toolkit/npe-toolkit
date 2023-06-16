@@ -14,6 +14,7 @@ import {
 import {useScope} from '@toolkit/core/providers/Client';
 import {providerKeyFor, use} from '@toolkit/core/providers/Providers';
 import {useAppConfig} from '@toolkit/core/util/AppConfig';
+import {CodedError} from '@toolkit/core/util/CodedError';
 import {networkDelay} from '@toolkit/core/util/DevUtil';
 import Promised from '@toolkit/core/util/Promised';
 import {Opt} from '@toolkit/core/util/Types';
@@ -148,53 +149,63 @@ export function FirebaseAuthService(props: Props) {
   }
 
   async function login(creds: LoginCredential): Promise<User> {
-    const type = creds.type;
+    try {
+      const type = creds.type;
 
-    let cred;
-    switch (type) {
-      case 'facebook':
-        cred = FacebookAuthProvider.credential(creds.token);
-        break;
-      case 'google':
-        cred = GoogleAuthProvider.credential(creds.token);
-        break;
-      case String(type.match(/oidc.*/)):
-        const openIdConnectProvider = new OAuthProvider(type);
-        cred = openIdConnectProvider.credential({
-          idToken: creds.token,
-        });
-        break;
-      case 'phone':
-        cred = PhoneAuthProvider.credential(
-          VERIFICATION_IDS[creds.id!],
-          creds.token,
-        );
-        break;
-      default:
-        throw Error(`Unsupported auth type for Firebase login: ${type}`);
-    }
-
-    function signIn(cred: firebase.auth.AuthCredential) {
-      const firebaseCred = auth.signInWithCredential(cred);
-      // Workaround for phone auth timing out
-      if (Platform.OS === 'ios' && type == 'phone') {
-        return auth.signInWithCredential(cred);
+      let cred;
+      switch (type) {
+        case 'facebook':
+          cred = FacebookAuthProvider.credential(creds.token);
+          break;
+        case 'google':
+          cred = GoogleAuthProvider.credential(creds.token);
+          break;
+        case String(type.match(/oidc.*/)):
+          const openIdConnectProvider = new OAuthProvider(type);
+          cred = openIdConnectProvider.credential({
+            idToken: creds.token,
+          });
+          break;
+        case 'phone':
+          cred = PhoneAuthProvider.credential(
+            VERIFICATION_IDS[creds.id!],
+            creds.token,
+          );
+          break;
+        default:
+          throw Error(`Unsupported auth type for Firebase login: ${type}`);
       }
-      return firebaseCred;
-    }
-    const firebaseCred = await signIn(cred);
-    const firebaseAccount = firebaseCred.user;
-    const newUser = await accountChange(firebaseAccount);
 
-    // Refresh the token so any new claims are reflected
-    if (firebaseAccount) {
-      await firebaseAccount.getIdToken(true);
-    }
+      function signIn(cred: firebase.auth.AuthCredential) {
+        const firebaseCred = auth.signInWithCredential(cred);
+        // Workaround for phone auth timing out
+        if (Platform.OS === 'ios' && type == 'phone') {
+          return auth.signInWithCredential(cred);
+        }
+        return firebaseCred;
+      }
+      const firebaseCred = await signIn(cred);
+      const firebaseAccount = firebaseCred.user;
+      const newUser = await accountChange(firebaseAccount);
 
-    if (newUser == null) {
-      throw Error('unsuccesful login');
+      // Refresh the token so any new claims are reflected
+      if (firebaseAccount) {
+        await firebaseAccount.getIdToken(true);
+      }
+
+      if (newUser == null) {
+        throw Error('unsuccesful login');
+      }
+      return newUser;
+    } catch (e: any) {
+      if (e?.code === 'auth/invalid-verification-code') {
+        throw new CodedError(
+          'invalid-verification-code',
+          'Incorrect verification code.',
+        );
+      }
+      throw e;
     }
-    return newUser;
   }
 
   async function checkLogin(): Promise<User> {
