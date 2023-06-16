@@ -6,6 +6,7 @@ import {useAuth} from '@toolkit/core/api/Auth';
 import {useAction} from '@toolkit/core/client/Action';
 import {useTheme} from '@toolkit/core/client/Theme';
 import {toUserMessage} from '@toolkit/core/util/CodedError';
+import {getWebDeviceType} from '@toolkit/core/util/Environment';
 import {LoginFlowBackButton} from '@toolkit/screens/login/LoginScreenParts';
 import {useTextInput} from '@toolkit/ui/UiHooks';
 import {useComponents} from '@toolkit/ui/components/Components';
@@ -21,7 +22,7 @@ const PhoneVerification: Screen<PhoneLoginParams> = props => {
   const auth = useAuth();
   const {backgroundColor} = useTheme();
   const {Button, Title, Body, Error} = useComponents();
-  const [CodeInput, code, setCode] = useTextInput(props.phone ?? '');
+  const [CodeInput, code, setCode] = useTextInput('');
   const [onSubmit, submitting] = useAction(login);
 
   async function login() {
@@ -38,12 +39,17 @@ const PhoneVerification: Screen<PhoneLoginParams> = props => {
     }
   }
 
+  const heightStyle =
+    Platform.OS === 'web' && getWebDeviceType() === 'mobile'
+      ? {maxHeight: 400}
+      : {};
+
   return (
     <KeyboardAvoidingView
       style={[S.root, {backgroundColor}]}
       behavior={Platform.OS === 'android' ? 'height' : 'padding'}
       keyboardVerticalOffset={top}>
-      <View style={S.padded}>
+      <View style={[S.padded, heightStyle]}>
         <KeyboardDismissPressable />
         <LoginFlowBackButton />
 

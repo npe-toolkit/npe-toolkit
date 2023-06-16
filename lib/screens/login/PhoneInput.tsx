@@ -1,5 +1,11 @@
 import * as React from 'react';
-import {KeyboardAvoidingView, Platform, StyleSheet, View} from 'react-native';
+import {
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  View,
+} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {FirebaseRecaptchaBanner} from 'expo-firebase-recaptcha';
 import {format, isValidPhoneNumber, parse} from 'libphonenumber-js';
@@ -8,6 +14,7 @@ import {useAuth} from '@toolkit/core/api/Auth';
 import {User} from '@toolkit/core/api/User';
 import {useAction} from '@toolkit/core/client/Action';
 import {useTheme} from '@toolkit/core/client/Theme';
+import {getWebDeviceType} from '@toolkit/core/util/Environment';
 import {LoginFlowBackButton} from '@toolkit/screens/login/LoginScreenParts';
 import {useTextInput} from '@toolkit/ui/UiHooks';
 import {useComponents} from '@toolkit/ui/components/Components';
@@ -45,12 +52,17 @@ const PhoneInput: Screen<PhoneLoginParams> = props => {
     navigate('PhoneVerification', {...props, phone: normalizedPhoneNumber});
   }
 
+  const heightStyle =
+    Platform.OS === 'web' && getWebDeviceType() === 'mobile'
+      ? {maxHeight: 400}
+      : {};
+
   return (
     <KeyboardAvoidingView
       style={[S.root, {backgroundColor}]}
       behavior={Platform.OS === 'android' ? 'height' : 'padding'}
       keyboardVerticalOffset={top}>
-      <View style={S.padded}>
+      <View style={[S.padded, heightStyle]}>
         <KeyboardDismissPressable />
         <LoginFlowBackButton />
         <View style={S.spaced}>
