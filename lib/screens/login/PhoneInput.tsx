@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {KeyboardAvoidingView, StyleSheet, View} from 'react-native';
+import {KeyboardAvoidingView, Platform, StyleSheet, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {FirebaseRecaptchaBanner} from 'expo-firebase-recaptcha';
 import {format, isValidPhoneNumber, parse} from 'libphonenumber-js';
@@ -61,7 +61,7 @@ const PhoneInput: Screen<PhoneLoginParams> = props => {
   return (
     <KeyboardAvoidingView
       style={[S.root, {backgroundColor}]}
-      behavior={'padding'}
+      behavior={Platform.OS === 'android' ? 'height' : 'padding'}
       keyboardVerticalOffset={top}>
       <View style={S.padded}>
         <KeyboardDismissPressable />
@@ -118,7 +118,6 @@ export default PhoneInput;
 const S = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FFF',
   },
   padded: {
     padding: 24,
