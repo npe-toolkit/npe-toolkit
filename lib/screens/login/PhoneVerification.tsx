@@ -3,9 +3,11 @@ import {KeyboardAvoidingView, Platform, StyleSheet, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useAuth} from '@toolkit/core/api/Auth';
+import {useAction} from '@toolkit/core/client/Action';
 import {useTheme} from '@toolkit/core/client/Theme';
 import {toUserMessage} from '@toolkit/core/util/CodedError';
 import {LoginFlowBackButton} from '@toolkit/screens/login/LoginScreenParts';
+import {useTextInput} from '@toolkit/ui/UiHooks';
 import {useComponents} from '@toolkit/ui/components/Components';
 import {KeyboardDismissPressable} from '@toolkit/ui/components/Tools';
 import {Screen} from '@toolkit/ui/screen/Screen';
@@ -13,18 +15,16 @@ import {PhoneLoginParams} from './PhoneInput';
 
 const PhoneVerification: Screen<PhoneLoginParams> = props => {
   const {next = 'Home', onLogin, phone} = props;
-  const [isLoading, setIsLoading] = useState(false);
   const {navigate} = useNavigation<any>();
   const {top} = useSafeAreaInsets();
   const [error, setError] = useState<string | null>(null);
-  const [code, setCode] = useState('');
   const auth = useAuth();
   const {backgroundColor} = useTheme();
-  const {Button, TextInput, Title, Body, Error} = useComponents();
+  const {Button, Title, Body, Error} = useComponents();
+  const [CodeInput, code, setCode] = useTextInput(props.phone ?? '');
+  const [onSubmit, submitting] = useAction(login);
 
-  const onSubmit = async () => {
-    setIsLoading(true);
-
+  async function login() {
     try {
       const user = await auth.login({type: 'phone', id: phone, token: code});
       if (onLogin) {
@@ -33,12 +33,10 @@ const PhoneVerification: Screen<PhoneLoginParams> = props => {
         navigate(next);
       }
     } catch (e) {
-      console.log(e);
       setCode('');
       setError(toUserMessage(e));
     }
-    setIsLoading(false);
-  };
+  }
 
   return (
     <KeyboardAvoidingView
@@ -58,13 +56,11 @@ const PhoneVerification: Screen<PhoneLoginParams> = props => {
           </View>
 
           <View>
-            <TextInput
+            <CodeInput
               label="Code"
               type="primary"
               keyboardType="number-pad"
               maxLength={6}
-              value={code}
-              onChangeText={setCode}
             />
             {error != null && (
               <View style={{paddingLeft: 10}}>
@@ -84,7 +80,7 @@ const PhoneVerification: Screen<PhoneLoginParams> = props => {
           <Button
             type="primary"
             style={{width: '100%', alignSelf: 'center'}}
-            loading={isLoading}
+            loading={submitting}
             onPress={onSubmit}>
             Verify
           </Button>
