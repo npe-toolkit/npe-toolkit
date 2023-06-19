@@ -3,24 +3,53 @@ import {useScope} from '@toolkit/core/providers/Client';
 import {providerKeyFor, use} from '@toolkit/core/providers/Providers';
 
 type ReloadFn = () => void;
-export const ReloadKey = providerKeyFor<ReloadFn>();
+export const ReloadKey = providerKeyFor<ReloadFn>({name: 'reload'});
+export const ReloadState = providerKeyFor<number>({name: 'reload-state'});
 
-// Call this in a top-level app component you'd like to see reloaded
-// Callers can check the state is the same to see if re-render is due to force relocd
-export function useReloadState(): number {
-  const [reloadState, setReloadState] = React.useState(0);
+/**
+ * A reload boundary should be set in one top-level component per scope.
+ *
+ * To request a reload:
+ * ```
+ * const reload = useReload();
+ * ...
+ * reload();
+ * ```
+ *
+ * When reloading:
+ * - All components in the scope that have called `useReloadState()` will
+ * get a new value for the reload state.
+ * - Entire component tree from component containing `useReloadBoundary()`
+ *   will be re-rendered.
+ */
+export function useReloadBoundary(): void {
   const reloads = React.useRef(0);
   const scope = useScope();
 
-  scope.provideValue(ReloadKey, () => {
-    reloads.current = reloads.current + 1;
-    setReloadState(reloads.current);
-  });
+  const reload = React.useCallback(() => {
+    reloads.current += 1;
+    scope.provideValue(ReloadState, reloads.current);
+  }, []);
 
-  return reloadState;
+  scope.provideValue(ReloadState, reloads.current);
+  scope.provideValue(ReloadKey, reload);
 }
 
-// Returns function that will reload
+/**
+ * Reload state is used to know whent to skip the cache and reload data on a page.
+ *
+ * If the value changes, you should reload any data cached from the previous value.
+ */
+export function useReloadState(): number {
+  return use(ReloadState);
+}
+
+/**
+ *
+ * Call `const reload=useReload(); reload();` when:
+ * - User initiates a page refresh, or
+ * - You want the surrounding screen to re-request the initially loaded data
+ */
 export function useReload(): ReloadFn {
   return use(ReloadKey);
 }

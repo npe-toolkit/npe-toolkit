@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {Text} from 'react-native';
 import {CallerIdContext} from '@toolkit/core/api/Log';
+import {useReloadBoundary} from '@toolkit/core/client/Reload';
 import {ErrorHandler} from '@toolkit/core/client/TriState';
 import {useScope} from '@toolkit/core/providers/Client';
 import {providerKeyFor, use} from '@toolkit/core/providers/Providers';
@@ -39,6 +40,7 @@ export function ApplyLayout<S extends Screen<any>>(props: Props<S>) {
   const {location} = useNavState();
   const scope = useScope();
   const [refresh, setRefesh] = React.useState(0);
+  useReloadBoundary();
 
   const getScreenState = () => {
     return screenPropsRef.current;
