@@ -87,6 +87,7 @@ const PhoneVerification: Screen<PhoneLoginParams> = props => {
             type="primary"
             style={{width: '100%', alignSelf: 'center'}}
             loading={submitting}
+            disabled={code.length === 0}
             onPress={onSubmit}>
             Verify
           </Button>
