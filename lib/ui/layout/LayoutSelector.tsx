@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {useRoute} from '@react-navigation/core';
-import {useNavigation} from '@react-navigation/native';
+import {useIsFocused, useNavigation} from '@react-navigation/native';
 import {canLoggingInFix} from '@toolkit/core/api/Auth';
 import {useLogEvent} from '@toolkit/core/api/Log';
 import {useUserMessaging} from '@toolkit/core/client/Status';
@@ -30,6 +30,7 @@ const LayoutSelector = (props: Layouts & LayoutProps) => {
   const userMessaging = useUserMessaging();
   const isMobile = deviceIsMobile();
   const logEvent = useLogEvent();
+  const isFocused = useIsFocused();
 
   React.useEffect(() => {
     // Clear user messages when navigating
@@ -44,8 +45,11 @@ const LayoutSelector = (props: Layouts & LayoutProps) => {
   function onError(err: Error) {
     // If you can fix the error by logging back in, redirect to login
     if (canLoggingInFix(err) && loginScreen) {
-      reactNav.setOptions({animationEnabled: false});
-      setTimeout(() => nav.reset(loginScreen), 0);
+      // TODO: Consider re-enabling animation
+      // reactNav.setOptions({animationEnabled: false});
+      if (isFocused) {
+        setTimeout(() => nav.reset(loginScreen), 0);
+      }
     }
     return false;
   }
