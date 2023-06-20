@@ -13,6 +13,7 @@ import {
 export type AuthType =
   | 'facebook'
   | 'google'
+  | 'apple'
   | 'anon'
   | 'phone'
   | 'dev'

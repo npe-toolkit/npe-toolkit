@@ -166,12 +166,19 @@ export function FirebaseAuthService(props: Props) {
             idToken: creds.token,
           });
           break;
+        case 'apple':
+          const appleProvider = new OAuthProvider('apple.com');
+          cred = appleProvider.credential({
+            idToken: creds.token,
+          });
+          break;
         case 'phone':
           cred = PhoneAuthProvider.credential(
             VERIFICATION_IDS[creds.id!],
             creds.token,
           );
           break;
+
         default:
           throw Error(`Unsupported auth type for Firebase login: ${type}`);
       }
@@ -179,9 +186,14 @@ export function FirebaseAuthService(props: Props) {
       function signIn(cred: firebase.auth.AuthCredential) {
         const firebaseCred = auth.signInWithCredential(cred);
         // Workaround for phone auth timing out
-        if (Platform.OS === 'ios' && type == 'phone') {
-          return auth.signInWithCredential(cred);
-        }
+        // Commented out for now - seems to be working temporarily
+        /*
+       
+        if (Platform.OS === 'ios' && (type == 'phone' || type == 'apple')) {
+          try {
+            auth.signInWithCredential('cred');
+          } catch (e) {}
+        }*/
         return firebaseCred;
       }
       const firebaseCred = await signIn(cred);

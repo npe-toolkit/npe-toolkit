@@ -15,6 +15,7 @@ import {
   PhoneButton,
 } from '@toolkit/screens/login/LoginScreenParts';
 import {useComponents} from '@toolkit/ui/components/Components';
+import {AppleButton} from './AppleButton';
 
 // Note: Separate config is only needed because SimpleLoginScreen can supports multiple apps.
 // If you branch this and create your own screen, you can just edit the content inline.
@@ -88,6 +89,7 @@ export function simpleLoginScreen(config: SimpleLoginScreenConfig) {
 
 const FB_SCOPES = {scopes: ['public_profile', 'email']};
 const GOOGLE_SCOPES = {scopes: ['email']};
+const APPLE_SCOPES = {scopes: []};
 
 export function AuthenticationButtons(props: {
   config: SimpleLoginScreenConfig;
@@ -137,9 +139,11 @@ export function AuthenticationButtons(props: {
       );
     } else if (type === 'phone') {
       return <PhoneButton onPress={() => navigate('PhoneInput', {onLogin})} />;
-    } else {
-      return null;
+    } else if (type === 'apple') {
+      return <AppleButton onLogin={onLogin} />;
     }
+
+    return null;
   });
 
   return (
