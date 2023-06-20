@@ -81,15 +81,17 @@ export function useScope() {
 function use<T>(key: ProviderKey<T>): T {
   const scope = useScope();
   const value = scope.use<T>(key);
-  const [refresh, setRefresh] = React.useState(0);
+  const [_, setRefresh] = React.useState(0);
 
   function updateValue(newValue: T) {
     // Update the state on a timeout to avoid changing state in
     // one React component while rendering a different one.
     // Value will be updated on `use()` on next render
-    setTimeout(() => {
-      setRefresh(refresh + 1);
-    }, 0);
+    if (value !== newValue) {
+      setTimeout(() => {
+        setRefresh(val => val + 1);
+      }, 0);
+    }
   }
 
   // Trigger state change when scope value changes
