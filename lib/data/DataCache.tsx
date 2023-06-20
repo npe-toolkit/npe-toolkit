@@ -90,7 +90,7 @@ export function getInMemoryCache<T>(namespace: string): DataCache<T> {
  */
 function inMemoryCache<T>(): DataCache<T> {
   let cache: Record<string, T> = {};
-  let listeners: Record<string, DataCallback[]> = {};
+  let listeners: Record<string, Set<DataCallback>> = {};
   let queryLoaded: Record<string, boolean> = {};
 
   async function get(id: string, fn: () => Promise<Opt<T>>): Promise<Opt<T>> {
@@ -166,14 +166,14 @@ function inMemoryCache<T>(): DataCache<T> {
       ids = [ids];
     }
     for (const key of ids) {
-      listeners[key] = listeners[key] ?? [];
-      listeners[key].push(callback);
+      listeners[key] = listeners[key] ?? new Set<DataCallback>();
+      listeners[key].add(callback);
     }
 
     return () => {
       for (const key of ids) {
-        listeners[key] = listeners[key].filter(cb => cb != callback);
-        if (listeners[key].length == 0) {
+        listeners[key].delete(callback);
+        if (listeners[key].size == 0) {
           delete listeners[key];
         }
       }
