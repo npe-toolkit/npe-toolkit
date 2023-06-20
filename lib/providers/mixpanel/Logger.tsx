@@ -21,7 +21,7 @@ async function mixpanelRequest(endpoint: string, json: any) {
 export function MixpanelLogger(token: string) {
   function useMixpanelLogger() {
     return async (event: LogEvent) => {
-      const {user, when, ...rest} = event;
+      const {user, when, stack, ...rest} = event;
       const insert_id = uuidv4();
       try {
         const mixpanelEvent = {
@@ -30,6 +30,11 @@ export function MixpanelLogger(token: string) {
             distinct_id: user || 'anonymous',
             $insert_id: insert_id,
             time: when,
+            // Temporary fix for mixpanel request errors
+            // TODO: Figure out how to encode properly for mixpanel
+            stack: stack
+              ? stack.replaceAll('\n', 'n').replaceAll('"', "'")
+              : undefined,
             token,
             ...rest,
           },
