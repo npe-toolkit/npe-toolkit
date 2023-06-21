@@ -38,7 +38,7 @@ export class StorageToken extends BaseModel implements PushToken {
   @Field(TString) token: string;
   @Field(TBool) sandbox: boolean;
   @Field(TString) fcmToken: string;
-  @Field() user: User;
+  @Field() user?: User;
 }
 
 /**
@@ -49,5 +49,5 @@ export class NotificationPref extends BaseModel {
   @Field(TString) channelId: string;
   @Field(TArray(TString)) deliveryMethods: DeliveryMethod[];
   @Field(TBool) enabled: boolean;
-  @Field() user: User;
+  @Field() user?: User;
 }

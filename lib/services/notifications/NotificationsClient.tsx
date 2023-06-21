@@ -1,7 +1,9 @@
 import {requireLoggedInUser} from '@toolkit/core/api/User';
 import {Opt} from '@toolkit/core/util/Types';
 import {useDataStore} from '@toolkit/data/DataStore';
-import NotificationChannel from '@toolkit/services/notifications/NotificationChannel';
+import NotificationChannel, {
+  useNotificationChannels,
+} from '@toolkit/services/notifications/NotificationChannel';
 import {
   NotificationPref,
   PushToken,
@@ -13,6 +15,17 @@ export const useNotifications = (): NotificationsAPI => {
   const user = requireLoggedInUser();
   const tokenStore = useDataStore(StorageToken);
   const prefsStore = useDataStore(NotificationPref);
+  const channels = useNotificationChannels();
+
+  function defaultPrefForChannel(channel: NotificationChannel) {
+    return {
+      id: 'new',
+      channelId: channel.id,
+      user,
+      deliveryMethods: [channel.defaultDeliveryMethod],
+      enabled: true,
+    };
+  }
 
   return {
     registerPushToken: async (token): Promise<void> => {
@@ -42,27 +55,34 @@ export const useNotifications = (): NotificationsAPI => {
       }
     },
 
-    getNotificationPrefs: async channel => {
-      return await prefsStore.get(`${user.id}:${channel.id}`);
+    getNotificationPrefs: async () => {
+      const prefs = await prefsStore.query({
+        where: [{field: 'user', op: '==', value: user.id}],
+      });
+
+      return Object.keys(channels).map(key => ({
+        channel: channels[key],
+        pref:
+          prefs.find(pref => pref.channelId === channels[key].id) ??
+          defaultPrefForChannel(channels[key]),
+      }));
     },
 
-    setNotificationPrefs: async (channel, prefs) => {
-      const newPrefs = {
-        id: `${user.id}:${channel.id}`,
-        channelId: channel.id,
-        user: {id: user.id},
-        deliveryMethods: prefs.deliveryMethods,
-        enabled: prefs.enabled,
-      };
-
-      const exists = prefsStore.get(`${user.id}:${channel.id}`);
-      if (exists == null) {
-        return await prefsStore.create(newPrefs);
+    updatePref: async pref => {
+      const newPref: Partial<NotificationPref> = {...pref};
+      if (newPref.id === 'new') {
+        delete newPref['id'];
+        return await prefsStore.create(newPref);
       } else {
-        return await prefsStore.update(newPrefs);
+        return await prefsStore.update(newPref);
       }
     },
   };
+};
+
+export type ChannelAndPref = {
+  channel: NotificationChannel;
+  pref: NotificationPref;
 };
 
 /**
@@ -88,26 +108,19 @@ export type NotificationsAPI = {
   unregisterPushToken: (tokenId: string) => Promise<void>;
 
   /**
-   * Get the logged in user's preferred delivery method(s) for a channel.
+   * Get the logged in user's notification prefernces,
+   * which are the channel ID mapped to an array of delivery methods.
    *
-   * If the user doesn't have any preferences, this should just return
-   * the default method for the channel.
-   *
-   * If the user has disabled this notification, this should return
+   * If the user has disabled this notification, this will return
    * an empty array.
    */
-  getNotificationPrefs: (
-    channel: NotificationChannel,
-  ) => Promise<Opt<NotificationPref>>;
+  getNotificationPrefs: () => Promise<ChannelAndPref[]>;
 
   /**
    * Set the logged in user's preferred delivery methods for a channel.
    * This will override the default delivery method set for a channel.
    */
-  setNotificationPrefs: (
-    channel: NotificationChannel,
-    pref: Pick<NotificationPref, 'deliveryMethods' | 'enabled'>,
-  ) => Promise<NotificationPref>;
+  updatePref: (pref: NotificationPref) => Promise<NotificationPref>;
 };
 
 /**
