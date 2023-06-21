@@ -174,7 +174,7 @@ function toFirestoreFields<T extends BaseModel>(
     // @ts-ignore TODO: Make this typesafe
     else if (isModelRefType(schemaType?.type)) {
       const id = (value as BaseModel)?.id;
-      if (id !== null) {
+      if (id != null) {
         // @ts-ignore
         out[key] = id;
       }
