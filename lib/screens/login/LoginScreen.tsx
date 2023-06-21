@@ -112,14 +112,11 @@ export function AuthenticationButtons(props: {
     setLoginErrorMessage(null);
     const tryConnect = type === 'google' ? tryGoogleLogin : tryFacebookLogin;
     const creds = await tryConnect();
-    // console.log(creds);
     const user = await auth.login(creds);
-    // console.log(user);
     onLogin(user);
   }
 
   function onLogin(user: User) {
-    console.log('onLogin', user);
     if (user.canLogin) {
       navigate(next);
     } else if (user.cantLoginReason === 'onboarding' && onboarding != null) {
@@ -201,7 +198,7 @@ const S = StyleSheet.create({
   tos: {
     alignSelf: 'center',
     textAlign: 'center',
-    maxWidth: 400,
+    maxWidth: 450,
     marginVertical: 20,
   },
 });

@@ -5,7 +5,6 @@ import {
   BaseModel,
   Model,
   ModelClass,
-  ModelUtil,
   useDataStore,
 } from '@toolkit/data/DataStore';
 

@@ -58,8 +58,7 @@ export class User extends BaseModel {
    * logged-in user
    */
   canLogin?: Opt<boolean>;
-  /**
-   * 
+
   /**
    * Set of roles associated with the user (e.g. "admin", "dev")
    *
