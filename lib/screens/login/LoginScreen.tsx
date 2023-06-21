@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {Image, StyleSheet, View} from 'react-native';
+import {Image, Platform, StyleSheet, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import Markdown from 'react-native-markdown-display';
 import {AuthType, useAuth} from '@toolkit/core/api/Auth';
@@ -89,12 +89,11 @@ export function simpleLoginScreen(config: SimpleLoginScreenConfig) {
 
 const FB_SCOPES = {scopes: ['public_profile', 'email']};
 const GOOGLE_SCOPES = {scopes: ['email']};
-const APPLE_SCOPES = {scopes: []};
 
 export function AuthenticationButtons(props: {
   config: SimpleLoginScreenConfig;
 }) {
-  const {authTypes, home, onboarding} = props.config;
+  let {authTypes, home, onboarding} = props.config;
   const auth = useAuth();
   const {navigate} = useNavigation<any>();
   const route: any = useRoute();
@@ -105,15 +104,22 @@ export function AuthenticationButtons(props: {
   const {Body, Error} = useComponents();
   const [tryLoginAction, loggingIn] = useAction('TryLogin', tryLogin);
 
+  if (Platform.OS !== 'ios') {
+    authTypes = authTypes.filter(v => v !== 'apple');
+  }
+
   async function tryLogin(type: AuthType): Promise<void> {
     setLoginErrorMessage(null);
     const tryConnect = type === 'google' ? tryGoogleLogin : tryFacebookLogin;
     const creds = await tryConnect();
+    // console.log(creds);
     const user = await auth.login(creds);
+    // console.log(user);
     onLogin(user);
   }
 
   function onLogin(user: User) {
+    console.log('onLogin', user);
     if (user.canLogin) {
       navigate(next);
     } else if (user.cantLoginReason === 'onboarding' && onboarding != null) {
