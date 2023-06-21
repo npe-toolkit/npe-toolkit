@@ -43,7 +43,7 @@ type State = {
 };
 
 const LOADING_TEXT = 'Loading...';
-const ERROR_TEXT = "I'm sorry Dave, I'm afraid I can't do that";
+const ERROR_TEXT = 'An unknown error occurred';
 
 class TriState extends React.Component<Props, State> {
   state: State = {
