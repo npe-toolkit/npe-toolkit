@@ -11,6 +11,7 @@ export const useFirebasePhoneAuth = (): [
   SendVerificationCode,
 ] => {
   patchReactNativeWebViewCrash();
+  const [instanceId, setInstanceId] = React.useState(0);
 
   const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal>(null);
 
@@ -20,8 +21,6 @@ export const useFirebasePhoneAuth = (): [
     const phoneProvider = new firebase.auth.PhoneAuthProvider(auth);
 
     const verifier = recaptchaVerifier.current!;
-    // @ts-ignore
-    verifier._reset = () => {};
 
     // TODO: Catch any backend errors and rethrow CodedError
     const verificationId = await phoneProvider.verifyPhoneNumber(
@@ -29,13 +28,18 @@ export const useFirebasePhoneAuth = (): [
       verifier,
     );
 
+    // This updates the instsace, which clears out the recaptcha overlay
+    // without this call it will stay on screen ~forever.
+    setInstanceId(instanceId + 1);
     return verificationId;
   };
+  recaptchaVerifier.current?.cancel;
 
   const FirebaseRecaptcha = () => {
     return (
       <>
         <FirebaseRecaptchaVerifierModal
+          key={instanceId}
           ref={recaptchaVerifier}
           firebaseConfig={firebase.app().options}
           attemptInvisibleVerification={true}
