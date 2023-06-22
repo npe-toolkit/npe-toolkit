@@ -333,7 +333,7 @@ EXPERIMENTAL code below this point
  * Annotation for **experimental** support for automated cascading
  * deletion of entities. Actual deletion is **not enabled** by default,
  * so you can ignore this annotations unless you are using [experimental
- * deletion features](https://github.com/facebookincubator/npe-toolkit/tree/main/docs/in-progress/Deletion.md).
+ * deletion features](https://github.com/npe-toolkit/toolkit/tree/main/docs/in-progress/Deletion.md).
  */
 export function DeletedBy(...deletions: DeletionRule[]): any {
   return function (modelClass: any): typeof modelClass {

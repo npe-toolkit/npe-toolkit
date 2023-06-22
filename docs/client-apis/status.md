@@ -81,7 +81,7 @@ API.
 
 Skeleton of a component for providing this API is below, but easiest way to get
 started is to copy the
-[\<SimpleUserMessaging\>](https://github.com/facebookincubator/npe-toolkit/blob/6e1620918cac9269ae0031dfb4ec3f65ea84a3c4/lib/core/client/UserMessaging.tsx#L53)
+[\<SimpleUserMessaging\>](https://github.com/npe-toolkit/toolkit/blob/6e1620918cac9269ae0031dfb4ec3f65ea84a3c4/lib/core/client/UserMessaging.tsx#L53)
 component and then modify for your needs.
 
 ```tsx

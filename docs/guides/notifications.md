@@ -114,18 +114,18 @@ If you want to configure this for some other auth and storage backend, you'll
 need to implement:
 
 1. `registerPushToken`: A function that accepts a user ID and a
-   [`PushToken`](https://github.com/facebookincubator/npe-toolkit/blob/d7810a828e46aaaf3337211a606a017ef8dc406b/lib/services/notifications/NotificationTypes.tsx#L34)
+   [`PushToken`](https://github.com/npe-toolkit/toolkit/blob/d7810a828e46aaaf3337211a606a017ef8dc406b/lib/services/notifications/NotificationTypes.tsx#L34)
    object. This should store the push token in your storage (for example in
    Firestore). In order to use FCM, you'll also need to convert this into an FCM
    token at some point (see more about this below).
 
 2. `unregisterPushToken`: A function that accepts a user ID and a
-   [`PushToken`](https://github.com/facebookincubator/npe-toolkit/blob/d7810a828e46aaaf3337211a606a017ef8dc406b/lib/services/notifications/NotificationTypes.tsx#L34)
+   [`PushToken`](https://github.com/npe-toolkit/toolkit/blob/d7810a828e46aaaf3337211a606a017ef8dc406b/lib/services/notifications/NotificationTypes.tsx#L34)
    object. This should delete the push token for the user. This will be called
    if a push token has expired.
 
 3. `getSendDestination`: A function that accepts a user ID and
-   [`DeliveryMethod`](https://github.com/facebookincubator/npe-toolkit/blob/d7810a828e46aaaf3337211a606a017ef8dc406b/lib/services/notifications/NotificationTypes.tsx#L22).
+   [`DeliveryMethod`](https://github.com/npe-toolkit/toolkit/blob/d7810a828e46aaaf3337211a606a017ef8dc406b/lib/services/notifications/NotificationTypes.tsx#L22).
    For push notifications, this should return FCM tokens. For emails, this
    should return the user's email address. For SMS notifications, this should
    return the user's phone number.
@@ -147,7 +147,7 @@ need to implement:
 
 The `NotificationsSendConfig` describes how the notification should be sent out.
 If you're using FCM, you should just use the helpers provided in
-[`FirebaseNotificationsSender.tsx`](https://github.com/facebookincubator/npe-toolkit/blob/6e1620918cac9269ae0031dfb4ec3f65ea84a3c4/lib/providers/firebase/server/PushNotifications.tsx):
+[`FirebaseNotificationsSender.tsx`](https://github.com/npe-toolkit/toolkit/blob/6e1620918cac9269ae0031dfb4ec3f65ea84a3c4/lib/providers/firebase/server/PushNotifications.tsx):
 
 ```tsx
 const sendConfig: SendNotificationConfig = {
