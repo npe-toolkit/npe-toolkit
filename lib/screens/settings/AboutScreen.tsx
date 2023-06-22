@@ -39,7 +39,7 @@ export function simpleAboutScreen(props: AboutScreenProps) {
 
 const SimplecAboutScreen = (props: AboutScreenProps) => {
   const {title, body, note, center, showIcon} = props;
-  const {back} = useNav();
+  const {back, backOk} = useNav();
   const {Button} = useComponents();
   const {Title} = useComponents();
   const {appIcon} = useAppInfo();
@@ -67,9 +67,11 @@ const SimplecAboutScreen = (props: AboutScreenProps) => {
             {note}
           </Markdown>
         )}
-        <Button type="primary" onPress={back} style={{paddingHorizontal: 48}}>
-          Continue
-        </Button>
+        {backOk() && (
+          <Button type="primary" onPress={back} style={{paddingHorizontal: 48}}>
+            Continue
+          </Button>
+        )}
       </View>
     </View>
   );
