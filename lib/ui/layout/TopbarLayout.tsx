@@ -47,8 +47,8 @@ const TopbarLayout = (props: LayoutProps & NavItems) => {
   return (
     <StatusContainer>
       <SafeAreaView style={[S.top, {maxHeight}]}>
-        <View style={{flex: 1, backgroundColor: '#F0F0F0'}}>
-          {navStyle === 'full' && <TopHeader {...props} />}
+        <View style={{flex: 1}}>
+          {navStyle !== 'none' && <TopHeader {...props} />}
           <StatusBar style={{alignItems: 'center'}} />
           <View style={{flex: 1}}>
             <TriState key={key} onError={onError} loadingView={loadingView}>
@@ -64,9 +64,10 @@ const TopbarLayout = (props: LayoutProps & NavItems) => {
 };
 
 const TopHeader = (props: LayoutProps & NavItems) => {
-  const {main: tabs, extra, title} = props;
+  const {main: tabs, extra, title, style} = props;
   const {location, routes} = useNavState();
   const nav = useNav();
+  const navStyle = style?.nav ?? 'full';
 
   function styleFor(tab: NavItem) {
     const bottomWidthStyle = isCurrent(tab) ? {borderBottomWidth: 3} : {};
@@ -80,9 +81,10 @@ const TopHeader = (props: LayoutProps & NavItems) => {
   const rights = extra?.filter(item => !isCurrent(item)) || [];
   const iconCount = Math.max(tabs.length, rights.length);
   const actionsStyle = [S.topNavActions, {flexBasis: iconCount * 60}];
+  const containerStyle = navStyle == 'full' ? S.fullNav : S.overlayNav;
 
   return (
-    <View style={{backgroundColor: '#FFF'}}>
+    <View style={containerStyle}>
       <View style={S.topTabs}>
         <View style={actionsStyle}>
           {tabs.map((tab, idx) => (
@@ -98,7 +100,7 @@ const TopHeader = (props: LayoutProps & NavItems) => {
           ))}
         </View>
 
-        <Text style={[S.title]}>{title}</Text>
+        {navStyle == 'full' && <Text style={[S.title]}>{title}</Text>}
         <View style={[actionsStyle, {justifyContent: 'flex-end'}]}>
           {rights.map((item, idx) => (
             <IconButton
@@ -144,5 +146,14 @@ const S = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderColor: 'green',
+  },
+  fullNav: {
+    backgroundColor: '#FFF',
+  },
+  overlayNav: {
+    left: 0,
+    right: 0,
+    position: 'absolute',
+    zIndex: 5,
   },
 });

@@ -15,7 +15,7 @@ import {
 } from '@toolkit/ui/layout/LayoutBlocks';
 import {LayoutComponent, LayoutProps} from '@toolkit/ui/screen/Layout';
 import {useNav, useNavState} from '@toolkit/ui/screen/Nav';
-import {Screen} from '@toolkit/ui/screen/Screen';
+import {NavType, Screen, ScreenType} from '@toolkit/ui/screen/Screen';
 
 /**
  * Create a tab-based layout. Allows customizing the tabs and the items
@@ -56,18 +56,19 @@ const TabLayout = (props: TabLayoutProps) => {
   const navStyle = style?.nav ?? 'full';
   const navType = style?.type ?? 'std';
   const showBack = navType !== 'top';
-  const showTabs = navType === 'top' && navStyle === 'full';
+  const showTabs = navType === 'top' && navStyle !== 'none';
 
   return (
     <SafeAreaView style={S.top}>
       <StatusBar barStyle="light-content" />
       <View style={S.innerTop}>
-        {navStyle === 'full' && (
+        {navStyle !== 'none' && (
           <Header
             title={title}
             navItems={extra}
             home={home}
             showBack={showBack}
+            navStyle={navStyle}
           />
         )}
         <View style={S.content}>
@@ -88,9 +89,16 @@ type HeaderProps = {
   home?: Screen<any>;
   navItems?: NavItem[];
   showBack: boolean;
+  navStyle: NavType;
 };
 
-const Header = ({title, home, navItems = [], showBack}: HeaderProps) => {
+const Header = ({
+  title,
+  home,
+  navItems = [],
+  showBack,
+  navStyle,
+}: HeaderProps) => {
   const {location, routes} = useNavState();
   const nav = useNav();
 
@@ -107,11 +115,13 @@ const Header = ({title, home, navItems = [], showBack}: HeaderProps) => {
   }
 
   const canBack = showBack && (nav.backOk() || home);
-
   const navs = navItems.filter(item => visible(item));
 
+  const headerStyle = navStyle === 'full' ? S.header : S.headerOverlay;
+  const titleToShow = navStyle === 'full' ? title : ' ';
+
   return (
-    <View style={S.header}>
+    <View style={headerStyle}>
       <View style={S.headerActions}>
         {canBack && (
           <IconButton
@@ -133,7 +143,7 @@ const Header = ({title, home, navItems = [], showBack}: HeaderProps) => {
       </View>
       <View style={S.titleBox}>
         <Text style={S.title} numberOfLines={1}>
-          {' ' + title + ' '}
+          {titleToShow}
         </Text>
       </View>
     </View>
@@ -178,11 +188,9 @@ const S = StyleSheet.create({
   top: {
     flex: 1,
     alignSelf: 'stretch',
-    backgroundColor: '#000',
   },
   innerTop: {
     flex: 1,
-    backgroundColor: '#F0F0F0',
     overflow: 'hidden',
   },
   content: {
@@ -192,10 +200,20 @@ const S = StyleSheet.create({
     flexBasis: 400,
   },
   header: {
+    left: 0,
+    right: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
     backgroundColor: '#FFF',
+  },
+  headerOverlay: {
     width: '100%',
     paddingHorizontal: 8,
     paddingVertical: 12,
+    position: 'absolute',
+    zIndex: 5,
+    left: 0,
+    right: 0,
   },
   headerActions: {
     flexDirection: 'row',
@@ -227,7 +245,10 @@ const S = StyleSheet.create({
     paddingBottom: 2,
     alignItems: 'center',
   },
-  headerRight: {opacity: 0.65, marginRight: 8},
+  headerRight: {
+    opacity: 0.65,
+    marginRight: 8,
+  },
 });
 
 export default TabLayout;

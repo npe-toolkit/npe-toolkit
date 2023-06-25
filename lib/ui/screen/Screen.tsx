@@ -18,11 +18,13 @@ export type ScreenType = 'top' | 'modal' | 'std';
  * cases can be represented by one of these enums.
  *
  * - "full" is standard navigation
+ * - "overlay" shows the navigation over the screen content,
+ *    and doesn't show the screen title
  * - "none" has no frame
  *
  * Default is "full". May be opportunities to add new types
  */
-export type NavType = 'full' | 'none';
+export type NavType = 'full' | 'overlay' | 'none';
 
 export interface ScreenProps {
   // Title of the screen. TODO: Allow overriding this asynchronously on page load
