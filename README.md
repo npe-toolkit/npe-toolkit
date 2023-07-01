@@ -1,7 +1,7 @@
 ## 🚧 🚧 Under Construction 🚧 🚧
 
-We're upgrading the Toolkit: cleaning off the rough edges off of APIs,
-improving the implementations, and deprecating legacy code.
+We're upgrading the Toolkit: cleaning off the rough edges off of APIs, improving
+the implementations, and deprecating legacy code.
 
 [Current Status](#current-status) has more details.
 
@@ -33,17 +33,17 @@ upon.
 
 ## Current Status
 
-The Toolkit is undergoing significant renovations and the is not a stable base to 
-build on currently. If you're interested in using the work-in-progress, you should
-pinning to a specific version or forking into your own repo.
+The Toolkit is undergoing significant renovations and the is not a stable base
+to build on currently. If you're interested in using the work-in-progress, you
+should pinning to a specific version or forking into your own repo.
 
-What's changing
+What's changing:
 
 - Primitives for logging, auth, flags, and data access are getting a API refresh
   and being plugged into dependency injection so they can work both in client
   and server code.
 
-> GOAL: Business logic runs both on client and server.
+> **_Goal: Business logic runs both on client and server_**
 >
 > _The fastest iteration on new apps is when almost all functionality is in the
 > client code. But much of this code needs to be moved to the server as you roll
@@ -53,16 +53,16 @@ What's changing
   own implementations for `Button`, `TextInput` and other commmon UI elements so
   that the app can be customize for your look and feel.
 
-> GOAL: **Your** consistent look and feel across the app.
+> **_Goal: Your own consistent look and feel across the app_**
 >
-> _You shouldn't spend your time (especially at the staart) building auth flows,
+> _You shouldn't spend your time (especially at the start) building auth flows,
 > settings screens, profile editors, or admin consoles. But these screens have
 > to feel like they are a part of your application._
 
 - Data APIs are adding support for client caching, invalidation, and listening
   for changes in the client data state.
 
-> GOAL: Don't make the same request twice.
+> **_Goal: Don't make the same request twice_**
 >
 > _If data hasn't changed from your last known client state, you shouldn't need
 > a new request to the server. This is a small part of work of the upcomingwork
@@ -72,7 +72,7 @@ What's changing
   clearly marked.
 
 We're building a few apps on top of the revised toolkit, and when these go live
-with users we'll take off the "Under Construction" flags.
+with users we'll take off the "Under Construction" flag.
 
 ---
 
