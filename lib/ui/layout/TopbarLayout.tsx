@@ -7,9 +7,9 @@ import TriState from '@toolkit/core/client/TriState';
 import {routeKey} from '@toolkit/providers/navigation/ReactNavigation';
 import {
   IconButton,
+  LayoutConfig,
   LoadingView,
   NavItem,
-  NavItems,
   WaitForAppLoad,
   getIcon,
   logError,
@@ -20,8 +20,8 @@ import {useNav, useNavState} from '@toolkit/ui/screen/Nav';
 /**
  * Create a tab-based layout where main nav is on the top left of the top bar
  */
-export function topbarLayout(navItems: NavItems): LayoutComponent {
-  const {main: tabs} = navItems;
+export function topbarLayout(layoutConfig: LayoutConfig): LayoutComponent {
+  const {main: tabs} = layoutConfig;
 
   // Top level Tabs must use style.type = 'top to play nicely in navigation
   tabs.forEach(tab => {
@@ -30,10 +30,10 @@ export function topbarLayout(navItems: NavItems): LayoutComponent {
   });
 
   return (layoutProps: LayoutProps) => (
-    <TopbarLayout {...navItems} {...layoutProps} />
+    <TopbarLayout {...layoutConfig} {...layoutProps} />
   );
 }
-const TopbarLayout = (props: LayoutProps & NavItems) => {
+const TopbarLayout = (props: LayoutProps & LayoutConfig) => {
   const {children, style} = props;
   const loadingView = props.loading ?? LoadingView;
   const onError = props.onError ?? logError;
@@ -63,7 +63,7 @@ const TopbarLayout = (props: LayoutProps & NavItems) => {
   );
 };
 
-const TopHeader = (props: LayoutProps & NavItems) => {
+const TopHeader = (props: LayoutProps & LayoutConfig) => {
   const {main: tabs, extra, title, style} = props;
   const {location, routes} = useNavState();
   const nav = useNav();

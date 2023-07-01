@@ -6,16 +6,16 @@ import TriState from '@toolkit/core/client/TriState';
 import {routeKey} from '@toolkit/providers/navigation/ReactNavigation';
 import {
   IconButton,
+  LayoutConfig,
   LoadingView,
   NavItem,
-  NavItems,
   WaitForAppLoad,
   getIcon,
   logError,
 } from '@toolkit/ui/layout/LayoutBlocks';
 import {LayoutComponent, LayoutProps} from '@toolkit/ui/screen/Layout';
 import {useNav, useNavState} from '@toolkit/ui/screen/Nav';
-import {NavType, Screen, ScreenType} from '@toolkit/ui/screen/Screen';
+import {NavType, Screen} from '@toolkit/ui/screen/Screen';
 
 /**
  * Create a tab-based layout. Allows customizing the tabs and the items
@@ -26,8 +26,8 @@ import {NavType, Screen, ScreenType} from '@toolkit/ui/screen/Screen';
  * the default options, just make a copy `TabLayout.tsx` in your app directory
  * and customize at will!
  */
-export function bottomTabLayout(tabProps: NavItems): LayoutComponent {
-  const {main: tabs} = tabProps;
+export function bottomTabLayout(layoutConfig: LayoutConfig): LayoutComponent {
+  const {main: tabs} = layoutConfig;
 
   // Top level Tabs must use style.type = 'top to play nicely in navigation
   tabs.forEach(tab => {
@@ -36,12 +36,12 @@ export function bottomTabLayout(tabProps: NavItems): LayoutComponent {
   });
 
   return (layoutProps: LayoutProps) => (
-    <TabLayout {...tabProps} {...layoutProps} />
+    <TabLayout {...layoutConfig} {...layoutProps} />
   );
 }
 
 type TabLayoutProps = LayoutProps &
-  NavItems & {
+  LayoutConfig & {
     home?: Screen<any>;
   };
 
@@ -57,11 +57,12 @@ const TabLayout = (props: TabLayoutProps) => {
   const navType = style?.type ?? 'std';
   const showBack = navType !== 'top';
   const showTabs = navType === 'top' && navStyle !== 'none';
+  const backgroundColor = props.backgroundColor ?? '#F0F0F0';
 
   return (
     <SafeAreaView style={S.top}>
       <StatusBar barStyle="light-content" />
-      <View style={S.innerTop}>
+      <View style={[S.innerTop, {backgroundColor}]}>
         {navStyle !== 'none' && (
           <Header
             title={title}
@@ -188,6 +189,7 @@ const S = StyleSheet.create({
   top: {
     flex: 1,
     alignSelf: 'stretch',
+    backgroundColor: 'black',
   },
   innerTop: {
     flex: 1,

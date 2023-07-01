@@ -51,11 +51,22 @@ export type NavItem = {
   title?: string;
 };
 
-export type NavItems = {
+/**
+ * Common layout config for BottomTabLayout and TopbarLayout
+ *
+ * This is a good starting point for your own layout components,
+ * but generally good to create your own types - there doesn't appear to be
+ * much value in coupling the config for different types of layout.
+ */
+export type LayoutConfig = {
   /* The main app navigation entries */
   main: NavItem[];
+
   /* Extra navigtaion entries, usually rendered in the top right */
   extra: NavItem[];
+
+  /* Background color for the app */
+  backgroundColor?: string;
 };
 
 type IconButtonProps = {
