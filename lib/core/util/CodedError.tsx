@@ -62,11 +62,11 @@ export function toUserMessage(error: any, defaultText?: string) {
 }
 
 /**
- * Throw an ad-hoc error with a generic error code user visible message.
+ * Throw an ad-hoc error with a generic error code the the given user visible message.
  *
- * These can't be aggregated as cleanly, so don't use for common or expected errors
- * as it will be more difficult to distinguish the call site.
+ * These errors can't be aggregated cleanly, so don't use `AdhocError` for common or expected errors,
+ * as it is difficult monitor and identify failure patterns.
  */
-export function AdhocError(msg: string) {
-  return new CodedError('npe.adhoc', msg, msg);
+export function AdhocError(userMsg: string) {
+  return new CodedError('npe.adhoc', userMsg, userMsg);
 }
