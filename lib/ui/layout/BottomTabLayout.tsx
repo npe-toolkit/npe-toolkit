@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {StatusBar, StyleSheet, Text, View} from 'react-native';
+import {StyleSheet, Text, View} from 'react-native';
 import {useRoute} from '@react-navigation/core';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import TriState from '@toolkit/core/client/TriState';
@@ -61,7 +61,6 @@ const TabLayout = (props: TabLayoutProps) => {
 
   return (
     <SafeAreaView style={S.top}>
-      <StatusBar barStyle="light-content" />
       <View style={[S.innerTop, {backgroundColor}]}>
         {navStyle !== 'none' && (
           <Header
@@ -189,7 +188,7 @@ const S = StyleSheet.create({
   top: {
     flex: 1,
     alignSelf: 'stretch',
-    backgroundColor: 'black',
+    backgroundColor: '#222260',
   },
   innerTop: {
     flex: 1,
