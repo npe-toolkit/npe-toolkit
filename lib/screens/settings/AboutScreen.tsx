@@ -34,10 +34,10 @@ export type AboutScreenProps = {
  * own customized About Screen at some point.
  */
 export function simpleAboutScreen(props: AboutScreenProps) {
-  return () => <SimplecAboutScreen {...props} />;
+  return () => <SimpleAboutScreen {...props} />;
 }
 
-const SimplecAboutScreen = (props: AboutScreenProps) => {
+const SimpleAboutScreen = (props: AboutScreenProps) => {
   const {title, body, note, center, showIcon} = props;
   const {back, backOk} = useNav();
   const {Button} = useComponents();
