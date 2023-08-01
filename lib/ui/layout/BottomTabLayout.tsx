@@ -188,7 +188,7 @@ const S = StyleSheet.create({
   top: {
     flex: 1,
     alignSelf: 'stretch',
-    backgroundColor: '#222260',
+    backgroundColor: '#000',
   },
   innerTop: {
     flex: 1,
