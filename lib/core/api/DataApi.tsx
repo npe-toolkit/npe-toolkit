@@ -12,17 +12,17 @@ export type UseApi<I, O> = (key: ApiKey<I, O>) => Api<I, O>;
 
 const APIS: Record<string, UseApi<any, any>> = {};
 const CLIENT_FALLBACKS: Record<string, UseApi<any, any>> = {};
-let clientFallbackEnabled = false;
+let preferClientApis = false;
 
 /**
- * For early development, it is convenient to run all logic on the client using Firestore APIs,
- * including, for example creating user.
+ * For early development, it is convenient to run all possible logic on the client using Firestore APIs,
+ * including, for example, creating users only on the client.
  *
- * For launch you'll need to switch this to true and use a server-side call by
- * setting `clientFallbackEnabled` to `false`.
+ * For launch many of these calls need to be moved to the server so they are more robust and secure,
+ * and many types functionality can't be safely exposed on the client even in early dev.
  */
-export function setClientFallbackEnabled(enabled: boolean) {
-  clientFallbackEnabled = enabled;
+export function setPreferClientApis(value: boolean) {
+  preferClientApis = value;
 }
 
 /**
@@ -58,7 +58,7 @@ export function setClientFallbackEnabled(enabled: boolean) {
  */
 export function useApi<I, O>(key: ApiKey<I, O>): Api<I, O> {
   let useDataFn = APIS[key.id] as Opt<UseApi<I, O>>;
-  if (clientFallbackEnabled && CLIENT_FALLBACKS[key.id]) {
+  if (preferClientApis && CLIENT_FALLBACKS[key.id]) {
     useDataFn = CLIENT_FALLBACKS[key.id] as Opt<UseApi<I, O>>;
   }
   if (useDataFn == null) {
