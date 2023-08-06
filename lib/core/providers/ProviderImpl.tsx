@@ -85,9 +85,7 @@ export function scope(
 
       return () => {
         ls!.delete(listenerKey);
-        if (ls && ls.size > 1) {
-          listeners.set(key, ls);
-        } else {
+        if (ls!.size === 0) {
           listeners.delete(key);
         }
       };
