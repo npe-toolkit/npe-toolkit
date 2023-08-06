@@ -61,7 +61,7 @@
  * ```
  * const MyTheme = {primary: 'red', secondary: 'blue'};
  * // ATheme is a ProviderKey<Theme>
- * provides(ATheme, MyTheme);
+ * providesValue(ATheme, MyTheme);
  *
  * ...
  * platformSpecificInitCodeWith(MyTheme)
