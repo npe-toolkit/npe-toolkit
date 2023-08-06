@@ -70,7 +70,10 @@ export function useLoad<T>(props: ComponentProps, load: Loader<T>): WithSet<T> {
   // Get the existing promise, indexed by props key
   const loadState = _loadstate as LoadState;
   const promises = loadState.promises;
+  //console.log('propsKey', propsKey);
+  //console.log('loadState', loadState);
   let promised = promises[propsKey];
+  //console.log('promised', promised != null);
 
   // If no existing promise, call the load function
   if (!promised) {
@@ -117,6 +120,7 @@ export function withLoad<Props>(Component: React.ComponentType<Props>) {
     // Currenltly we caches on all props (except for legacy `async`).
     // Likely will need to make this configurable
     const loadKey = propsToKey(propsForKey, ['async']);
+    console.log(loadKey);
 
     // Load state is state that is passed to the child component via props.
     // Includes both a persistent set of promises as well as methods
@@ -134,12 +138,7 @@ export function withLoad<Props>(Component: React.ComponentType<Props>) {
     }
 
     return (
-      <Component
-        {...props}
-        key={loadKey}
-        _loadstate={loadState.current}
-        _loadkey={loadKey}
-      />
+      <Component {...props} _loadstate={loadState.current} _loadkey={loadKey} />
     );
   };
 
