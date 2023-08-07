@@ -13,9 +13,13 @@ import {
 export type Listener<T> = (value: T) => void;
 export type Unlisten = () => void;
 
+// "app" and "screen" are well-known, but can use any string to name a scope
+export type ScopeName = 'app' | 'screen' | string;
+
 /** Internal scope API */
 export type ProviderScope = {
-  // TODO: Consider changing to putProvider and put
+  name(): ScopeName;
+  parent(): Opt<ProviderScope>;
   provide<T>(key: ProviderKey<T>, provider: Provider<T>): void;
   provideValue<T>(key: ProviderKey<T>, value: T): void;
   use<T>(key: ProviderKey<T>): T;
@@ -25,6 +29,7 @@ export type ProviderScope = {
 /** Internal scope implementation */
 export function scope(
   providers: any[] = [],
+  name: ScopeName,
   parentScope?: Opt<ProviderScope>,
 ): ProviderScope {
   // Will have type-safe accessors
@@ -42,6 +47,14 @@ export function scope(
   }
 
   return {
+    name(): ScopeName {
+      return name;
+    },
+
+    parent(): Opt<ProviderScope> {
+      return parentScope;
+    },
+
     provide: <T,>(key: ProviderKey<T>, provider: Provider<T>): void => {
       providerMap.set(key, provider);
     },
@@ -60,6 +73,7 @@ export function scope(
       if (provider) {
         return provider();
       }
+
       if (parentScope) {
         return parentScope.use(key);
       }

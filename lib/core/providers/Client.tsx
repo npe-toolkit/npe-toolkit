@@ -1,5 +1,9 @@
 import * as React from 'react';
-import {ProviderScope, scope} from '@toolkit/core/providers/ProviderImpl';
+import {
+  ProviderScope,
+  ScopeName,
+  scope,
+} from '@toolkit/core/providers/ProviderImpl';
 import {
   ProviderKey,
   setUseProviderImpl,
@@ -8,6 +12,7 @@ import {Opt} from '@toolkit/core/util/Types';
 
 export type ScopeProps = {
   providers: any[];
+  name?: ScopeName;
   children: React.ReactNode;
 };
 
@@ -47,29 +52,44 @@ export type ScopeProps = {
  * component props if these scopes don't work for a use case.
  */
 export function Scope(props: ScopeProps) {
-  const {providers, children} = props;
-  const parentScope = React.useContext(ProviderContext);
+  const {providers, name = 'app', children} = props;
+  const parentScope = React.useContext(ScopeContext);
 
   // Use same instance each time to avoid triggering re-renders
-  const scopeRef = React.useRef<ProviderScope>(scope(providers, parentScope));
+  const scopeRef = React.useRef<ProviderScope>(
+    scope(providers, name, parentScope),
+  );
 
   return (
-    <ProviderContext.Provider value={scopeRef.current}>
+    <ScopeContext.Provider value={scopeRef.current}>
       {children}
-    </ProviderContext.Provider>
+    </ScopeContext.Provider>
   );
 }
 
 // Client scope provider
-const ProviderContext = React.createContext<Opt<ProviderScope>>(null);
+const ScopeContext = React.createContext<Opt<ProviderScope>>(null);
 
-// TODO: Should we only expose a setter?
-export function useScope() {
-  const ctx = React.useContext(ProviderContext);
-  if (ctx == null) {
-    throw Error('Need to set up your scope with a <ScopeProvider>');
+export function useScope(name?: ScopeName) {
+  const scope = React.useContext(ScopeContext);
+  if (scope == null) {
+    throw Error('To use scopes you need <Scope> in your component tree');
   }
-  return ctx;
+
+  return findScope(scope, name);
+}
+
+export function findScope(scope: ProviderScope, name: Opt<ScopeName>) {
+  if (name == null || name === scope.name()) {
+    return scope;
+  }
+  const parentScope = scope.parent();
+
+  if (parentScope == null) {
+    throw Error(`No scope matching name "${name}"`);
+  }
+
+  return findScope(parentScope, name);
 }
 
 /**

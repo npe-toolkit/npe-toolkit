@@ -1,10 +1,14 @@
 import * as React from 'react';
 import {Text} from 'react-native';
-import {CallerIdContext} from '@toolkit/core/api/Log';
+import {CallerIdKey, provideCallerId} from '@toolkit/core/api/Log';
 import {useReloadBoundary} from '@toolkit/core/client/Reload';
 import {ErrorHandler} from '@toolkit/core/client/TriState';
-import {useScope} from '@toolkit/core/providers/Client';
-import {providerKeyFor, use} from '@toolkit/core/providers/Providers';
+import {Scope} from '@toolkit/core/providers/Client';
+import {
+  providerKeyFor,
+  providesValue,
+  use,
+} from '@toolkit/core/providers/Providers';
 import {PropsFor} from '@toolkit/core/util/Loadable';
 import {useWithLoad} from '@toolkit/core/util/UseLoad';
 import {Screen, ScreenProps} from '@toolkit/ui/screen/Screen';
@@ -35,10 +39,11 @@ export function ApplyLayout<S extends Screen<any>>(props: Props<S>) {
     id: screen.id,
   };
 
+  console.log('ApplyLayout', screen.name);
+
   const screenPropsRef = React.useRef<ScreenProps>(baseScreenProps);
   const Component = useWithLoad(screen);
   const {location} = useNavState();
-  const scope = useScope();
   const [refresh, setRefesh] = React.useState(0);
   useReloadBoundary();
 
@@ -65,17 +70,17 @@ export function ApplyLayout<S extends Screen<any>>(props: Props<S>) {
     }
   };
 
-  const api = {getScreenState, setScreenState};
+  const screenApi = {getScreenState, setScreenState};
 
   // TODO: Find a way to memoize when putting in values... maybe
-  scope.provideValue(ScreenApiKey, api);
+  providesValue(ScreenApiKey, screenApi);
 
-  const callerId = {
+  const callerId = providesValue(CallerIdKey, {
     where: screenPropsRef.current.id ?? location.route ?? 'Unknown',
-  };
+  });
 
   return (
-    <CallerIdContext.Provider value={callerId}>
+    <Scope name="screen" providers={[callerId, screenApi]}>
       <Layout {...screenPropsRef.current}>
         {Component ? (
           <Component {...params} />
@@ -83,7 +88,7 @@ export function ApplyLayout<S extends Screen<any>>(props: Props<S>) {
           <Text>No Screen for ${location.route}</Text>
         )}
       </Layout>
-    </CallerIdContext.Provider>
+    </Scope>
   );
 }
 
@@ -92,7 +97,7 @@ type ScreenApi = {
   setScreenState: (props: Partial<ScreenProps>) => void;
 };
 
-const ScreenApiKey = providerKeyFor<ScreenApi>();
+const ScreenApiKey = providerKeyFor<ScreenApi>({name: 'screen-api'});
 
 export function useScreenState(): ScreenApi {
   return use(ScreenApiKey);

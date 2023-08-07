@@ -1,7 +1,12 @@
 import * as React from 'react';
 import {Platform} from 'react-native';
 import {LoggedInUserKeyNoThrow} from '@toolkit/core/api/User';
-import {providerKeyFor, provides, use} from '@toolkit/core/providers/Providers';
+import {
+  providerKeyFor,
+  provides,
+  providesValue,
+  use,
+} from '@toolkit/core/providers/Providers';
 import {CodedError} from '@toolkit/core/util/CodedError';
 import {Opt} from '../util/Types';
 import {defineFlag, useEnabled} from './Flags';
@@ -217,6 +222,10 @@ export function eventToString(event: LogEvent) {
   return str;
 }
 
+type CallerId = {
+  where: string;
+};
+
 /**
  * Logged events need to be associated with a place from which they were initiated.
  * This the name of a screen, a background process, or a server API endpoint.
@@ -231,20 +240,25 @@ export function eventToString(event: LogEvent) {
  * This may be useful for use cases beyond logging (e.g. rate limiting API calls separately
  * based on which screen called then).
  */
-type CallerId = {
-  where: string;
-};
+export function useCallerId(): CallerId {
+  return use(CallerIdKey);
+}
 
 /**
- * Default context is an app-level context. This is needed for logging events
+ * Default caller ID is the 'App'.This is needed for logging events
  * that occur outside of the context of any specific screen.
  */
-export const CallerIdContext = React.createContext<CallerId>({
-  where: 'App',
+const DefaultCallerId: CallerId = {where: 'App'};
+
+export const CallerIdKey = providerKeyFor<CallerId>({
+  defaultValue: DefaultCallerId,
 });
 
-export function useCallerId(): CallerId {
-  return React.useContext(CallerIdContext);
+/**
+ * Create a caller ID provider that can be passed into a scope
+ */
+export function provideCallerId(id: string) {
+  return providesValue(CallerIdKey, {where: id});
 }
 
 /**
