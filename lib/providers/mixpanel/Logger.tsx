@@ -32,9 +32,8 @@ export function MixpanelLogger(token: string) {
             time: when,
             // Temporary fix for mixpanel request errors
             // TODO: Figure out how to encode properly for mixpanel
-            stack: stack
-              ? stack.replaceAll('\n', 'n').replaceAll('"', "'")
-              : undefined,
+
+            stack: stack == null ? undefined : stack.replaceAll('&', '%26'),
             token,
             ...rest,
           },
