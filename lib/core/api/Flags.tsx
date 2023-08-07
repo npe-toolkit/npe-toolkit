@@ -30,7 +30,10 @@ export type Flags = {
   /** Set a flag value. May throw if flag is not settable */
   set: <T>(flag: Flag<T>, value: Opt<T>) => Promise<void>;
 };
-export const FlagsApiKey = providerKeyFor<Flags>({defaultValue: nullFlags()});
+export const FlagsApiKey = providerKeyFor<Flags>({
+  name: 'flags',
+  defaultValue: nullFlags(),
+});
 
 export function useFlags() {
   return use(FlagsApiKey);
